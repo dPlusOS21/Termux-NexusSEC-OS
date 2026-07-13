@@ -6,6 +6,12 @@ il tutto dentro Termux. Per restare leggero, i tool girano dove conviene: **nati
 in Termux** dove possibile, in un **Debian minimale** (proot) solo per i pochi che
 non esistono in Termux, o come **richieste HTTP dirette** quando basta un'API.
 
+> **In sintesi:** ~120 tool organizzati in **5 profili** (Pen Testing, Web, OSINT,
+> Forensics, Reverse). L'installazione base occupa **~700 MB–1 GB** e attiva un set
+> pronto all'uso; gli altri ~100 tool si installano **on-demand** dal catalogo. I
+> tool che su telefono stock non possono girare (Wi-Fi/monitor mode, GUI) sono
+> elencati ma marcati **❌ non su stock**, senza illusioni.
+
 > ⚠️ **Uso legale.** I tool inclusi vanno usati **solo** su sistemi e reti di tua
 > proprietà o per cui hai un'autorizzazione scritta. Usarli contro terzi senza
 > permesso è un reato. Questo progetto è pensato per apprendimento, laboratorio e
@@ -491,13 +497,13 @@ lanciare **qualunque** comando installato.
 ```
 Termux-NexusSEC-OS/
 ├── install.sh          # bootstrap Termux nativo + Debian minimale (+ tor/proxychains)
-├── tools.py            # registry tool + runtime + validazione (condiviso)
+├── tools.py            # registry ~120 tool + runtime + BIN + PROFILI + validazione
 ├── native.py           # tool "nativi" via HTTP (RDAP), senza proot
-├── server.py           # backend reale (FastAPI, Termux/proot + ttyd + native + Tor)
+├── server.py           # backend reale (FastAPI, Termux/proot + ttyd + native + Tor + rilevamento)
 ├── mock_server.py      # backend finto per il PC (solo stdlib)
 ├── README.md           # questo file
 └── webapp/
-    ├── index.html      # la PWA
+    ├── index.html      # la PWA (griglia + hub profili/sistema + terminale)
     ├── manifest.json   # metadati PWA (installabile)
-    └── sw.js           # service worker (cache offline dello shell)
+    └── sw.js           # service worker (HTML network-first, asset in cache)
 ```
