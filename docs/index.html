@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050705">
+<title>Termux-NexusSEC-OS · scarica Termux</title>
+<style>
+  :root{
+    --bg:#050705; --panel:#0b0e0b; --card:#0d120d; --line:#16321f;
+    --fg:#3dff88; --fg-dim:#2aa35a; --muted:#5a7a63; --white:#d7f5e2;
+    --amber:#ffb454; --red:#ff5c5c; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--fg); line-height:1.5;
+    font-family:ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;
+    background-image:radial-gradient(circle at 50% -10%, #0a1a0f 0%, var(--bg) 55%);
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:640px; margin:0 auto; padding:22px 16px 60px}
+  header{text-align:center; margin-bottom:6px}
+  .brand{font-size:20px; font-weight:700; letter-spacing:.5px}
+  .brand b{color:var(--white)}
+  .sub{color:var(--muted); font-size:12.5px; margin-top:4px}
+  .warn{background:#1a1206; border:1px solid #4a3a12; color:var(--amber);
+    border-radius:12px; padding:11px 13px; font-size:12.5px; margin:18px 0}
+  h2{font-size:13px; color:var(--fg-dim); text-transform:uppercase; letter-spacing:2px;
+    margin:26px 2px 12px; display:flex; align-items:center; gap:9px}
+  h2 .n{display:inline-flex; width:22px; height:22px; align-items:center; justify-content:center;
+    background:var(--fg); color:#04160a; border-radius:50%; font-size:12px; font-weight:700}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px; margin-bottom:12px}
+  .card p{margin:0 0 10px; color:var(--muted); font-size:12.5px}
+  .card p b{color:var(--white)}
+  a.btn{display:flex; align-items:center; gap:10px; text-decoration:none;
+    background:linear-gradient(180deg,#0e140e,#0a0d0a); color:var(--white);
+    border:1px solid var(--line); border-radius:11px; padding:12px 14px; margin-top:8px;
+    font-size:13.5px}
+  a.btn:active{transform:scale(.98)}
+  a.btn .e{font-size:20px}
+  a.btn .t{flex:1}
+  a.btn .t small{display:block; color:var(--muted); font-size:11px; margin-top:2px}
+  a.btn.reco{border-color:var(--fg-dim); box-shadow:0 0 0 1px var(--fg-dim) inset}
+  .tag{font-size:10px; letter-spacing:1px; padding:2px 8px; border-radius:20px;
+    border:1px solid var(--fg-dim); color:var(--fg-dim)}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .grid a.btn{margin-top:0}
+  code, pre{font-family:inherit}
+  pre{background:#04160a; border:1px solid var(--line); border-radius:11px;
+    padding:12px 13px; overflow-x:auto; color:var(--white); font-size:12.5px; margin:0}
+  .copy{display:block; width:100%; margin-top:8px; background:var(--fg); color:#04160a;
+    border:0; border-radius:10px; padding:11px; font-family:inherit; font-size:13px;
+    font-weight:700; cursor:pointer}
+  .copy:active{transform:scale(.98)}
+  .muted{color:var(--muted); font-size:12px}
+  footer{text-align:center; color:var(--muted); font-size:11.5px; margin-top:30px}
+  footer a{color:var(--fg-dim)}
+  #toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
+    background:var(--panel); border:1px solid var(--fg-dim); color:var(--white);
+    padding:10px 16px; border-radius:24px; font-size:13px; opacity:0; pointer-events:none;
+    transition:.25s}
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">&gt;_ <b>Termux-NexusSEC-OS</b></div>
+    <div class="sub">Ambiente di pentesting su Android · senza root</div>
+  </header>
+
+  <div class="warn">
+    ⚠️ <b>Non installare Termux dal Play Store:</b> quella versione è vecchia e non
+    aggiornabile. Usa una delle fonti ufficiali qui sotto.
+  </div>
+
+  <h2><span class="n">1</span> Scarica Termux</h2>
+
+  <div class="card">
+    <p><b>Modo consigliato — F-Droid.</b> Si aggiorna da solo e sceglie in automatico
+    l'APK giusto per il tuo telefono.</p>
+    <a class="btn reco" href="https://f-droid.org/en/packages/com.termux/" rel="noopener">
+      <span class="e">🟢</span>
+      <span class="t">Termux su F-Droid<small>apri e premi "Scarica APK" (richiede l'app F-Droid o il download diretto)</small></span>
+      <span class="tag">CONSIGLIATO</span>
+    </a>
+  </div>
+
+  <div class="card">
+    <p><b>In alternativa — APK ufficiale da GitHub</b> (release <code>v0.118.3</code>).
+    Scegli l'architettura del tuo telefono: <b>quasi tutti</b> i modelli dal 2017 sono
+    <b>arm64-v8a</b>. Se non sei sicuro, usa <b>universal</b> (va bene ovunque, ma pesa di più).</p>
+    <a class="btn reco" href="https://github.com/termux/termux-app/releases/download/v0.118.3/termux-app_v0.118.3+github-debug_arm64-v8a.apk" rel="noopener">
+      <span class="e">📱</span>
+      <span class="t">arm64-v8a<small>la scelta giusta per la maggior parte dei telefoni</small></span>
+      <span class="tag">GIUSTO PER TE?</span>
+    </a>
+    <div class="grid" style="margin-top:8px">
+      <a class="btn" href="https://github.com/termux/termux-app/releases/download/v0.118.3/termux-app_v0.118.3+github-debug_universal.apk" rel="noopener">
+        <span class="e">🌍</span><span class="t">universal<small>va ovunque (~118 MB)</small></span></a>
+      <a class="btn" href="https://github.com/termux/termux-app/releases/download/v0.118.3/termux-app_v0.118.3+github-debug_armeabi-v7a.apk" rel="noopener">
+        <span class="e">📟</span><span class="t">armeabi-v7a<small>telefoni vecchi 32-bit</small></span></a>
+      <a class="btn" href="https://github.com/termux/termux-app/releases/download/v0.118.3/termux-app_v0.118.3+github-debug_x86_64.apk" rel="noopener">
+        <span class="e">💻</span><span class="t">x86_64<small>emulatore / tablet Intel</small></span></a>
+      <a class="btn" href="https://github.com/termux/termux-app/releases/download/v0.118.3/termux-app_v0.118.3+github-debug_x86.apk" rel="noopener">
+        <span class="e">💻</span><span class="t">x86<small>emulatore 32-bit</small></span></a>
+    </div>
+    <p class="muted" style="margin-top:10px">Vuoi sempre l'ultima versione?
+      <a href="https://github.com/termux/termux-app/releases/latest" style="color:var(--fg-dim)" rel="noopener">Release più recente su GitHub</a>.
+      Dopo il download, Android chiederà di consentire l'installazione da "origini sconosciute": accetta.</p>
+  </div>
+
+  <h2><span class="n">2</span> Installa NexusSEC-OS</h2>
+  <div class="card">
+    <p>Apri <b>Termux</b> appena installato e incolla questi comandi (tieni premuto per incollare):</p>
+    <pre id="cmd">pkg update -y &amp;&amp; pkg upgrade -y
+termux-setup-storage
+pkg install -y git python
+git clone https://github.com/dPlusOS21/Termux-NexusSEC-OS.git
+cd Termux-NexusSEC-OS
+bash install.sh
+python server.py</pre>
+    <button class="copy" id="copyBtn">📋 Copia i comandi</button>
+    <p class="muted" style="margin-top:10px">Poi apri <b>http://127.0.0.1:8000</b> nel
+      browser del telefono. <code>install.sh</code> scarica ~700 MB–1 GB (tool + Debian
+      minimale): meglio sotto Wi-Fi.</p>
+  </div>
+
+  <footer>
+    Progetto: <a href="https://github.com/dPlusOS21/Termux-NexusSEC-OS" rel="noopener">github.com/dPlusOS21/Termux-NexusSEC-OS</a><br>
+    Solo per test autorizzati / apprendimento. Termux © termux.dev (link ufficiali).
+  </footer>
+</div>
+<div id="toast"></div>
+<script>
+  var t=document.getElementById("toast");
+  document.getElementById("copyBtn").addEventListener("click",function(){
+    var txt=document.getElementById("cmd").innerText;
+    (navigator.clipboard&&navigator.clipboard.writeText(txt)||Promise.reject())
+      .then(function(){show("Comandi copiati")},function(){
+        // fallback selezione
+        var r=document.createRange(); r.selectNode(document.getElementById("cmd"));
+        var s=getSelection(); s.removeAllRanges(); s.addRange(r);
+        try{document.execCommand("copy"); show("Comandi copiati")}catch(e){show("Copia manuale: selezione pronta")}
+      });
+  });
+  function show(m){t.textContent=m; t.classList.add("show"); setTimeout(function(){t.classList.remove("show")},1800)}
+</script>
+</body>
+</html>
