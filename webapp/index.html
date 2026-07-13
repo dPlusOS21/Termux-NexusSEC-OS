@@ -666,7 +666,7 @@ function renderStartMenu(){
   // --- PROFILI ---
   cat("PROFILI");
   const pg=document.createElement("div"); pg.className="sm-prof";
-  if(!PROFILES.length){ pg.innerHTML='<div class="sm-empty">Profili non disponibili.</div>'; }
+  if(!PROFILES.length){ pg.innerHTML='<div class="sm-empty">Profili non disponibili.<br>Riavvia <b>server.py</b> (o il mock) e ricarica la pagina.</div>'; }
   PROFILES.forEach(p=>{
     const s=profileStats(p);
     const c=document.createElement("button"); c.className="sm-pcard";
