@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
+<title>Termux-NexusSEC-OS</title>
+<style>
+  :root{
+    --bg:#050705; --panel:#0b0e0b; --card:#0d120d; --line:#16321f;
+    --fg:#3dff88; --fg-dim:#2aa35a; --muted:#5a7a63; --white:#d7f5e2;
+    --red:#ff5c5c; --amber:#ffb454; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font-family:ui-monospace,"Cascadia Code",Menlo,Consolas,monospace;
+    -webkit-tap-highlight-color:transparent;
+    background-image:radial-gradient(circle at 50% -10%, #0a1a0f 0%, var(--bg) 60%);
+  }
+  /* ---------- header ---------- */
+  header{
+    position:sticky; top:0; z-index:5; background:rgba(5,7,5,.92);
+    backdrop-filter:blur(6px); border-bottom:1px solid var(--line);
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom,0));
+  }
+  .hrow{display:flex; align-items:center; gap:10px; max-width:760px; margin:0 auto}
+  .brand{font-size:15.5px; letter-spacing:.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0}
+  .brand b{color:var(--white)}
+  .grow{flex:1}
+  .iconbtn{
+    background:var(--card); color:var(--fg); border:1px solid var(--line);
+    border-radius:10px; padding:8px 10px; font-family:inherit; font-size:13px; cursor:pointer;
+  }
+  .iconbtn:active{transform:scale(.96)}
+  #search{
+    width:100%; margin:8px auto 0; max-width:760px; display:block;
+    background:var(--card); color:var(--white); border:1px solid var(--line);
+    border-radius:10px; padding:9px 12px; font-family:inherit; font-size:14px; outline:none;
+  }
+  #search::placeholder{color:var(--muted)}
+  #status{display:block; text-align:center; color:var(--muted); font-size:11px; margin-top:6px}
+  /* ---------- grid ---------- */
+  main{padding:12px; max-width:760px; margin:0 auto}
+  h2{font-size:12px; color:var(--fg-dim); text-transform:uppercase; letter-spacing:2px;
+     margin:22px 4px 10px; display:flex; align-items:center; gap:8px}
+  h2 .ic{font-size:16px}
+  h2 .count{color:var(--muted); font-weight:400; letter-spacing:0}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px}
+  .tool{
+    position:relative; text-align:left; cursor:pointer; font-family:inherit;
+    background:linear-gradient(180deg,#0e140e,#0a0d0a);
+    color:var(--fg); border:1px solid var(--line); border-radius:var(--radius);
+    padding:13px; min-height:96px; display:flex; flex-direction:column; gap:6px;
+    transition:transform .1s, border-color .1s, box-shadow .1s;
+  }
+  .tool:active{transform:scale(.97)}
+  .tool:hover{border-color:var(--fg-dim); box-shadow:0 0 0 1px var(--fg-dim) inset}
+  .tool .top{display:flex; align-items:center; gap:8px}
+  .tool .emoji{font-size:20px; line-height:1}
+  .tool .nm{font-size:13px; font-weight:600; color:var(--white); line-height:1.2}
+  .tool .desc{font-size:11px; color:var(--muted); line-height:1.35; flex:1}
+  .tool .badge{
+    align-self:flex-start; font-size:10px; letter-spacing:1px; padding:2px 7px; border-radius:20px;
+    border:1px solid var(--line); color:var(--fg-dim);
+  }
+  .tool .badge.term{color:var(--amber); border-color:#4a3a12}
+  .empty{color:var(--muted); text-align:center; padding:40px 12px; font-size:13px}
+  /* ---------- overlay generico ---------- */
+  .overlay{position:fixed; inset:0; z-index:20; display:none; flex-direction:column;
+    background:rgba(3,5,3,.97)}
+  .overlay.open{display:flex}
+  .obar{display:flex; align-items:center; gap:8px; padding:12px 14px; border-bottom:1px solid var(--line)}
+  .otitle{flex:1; font-size:14px; color:var(--white); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .obody{flex:1; overflow:auto; -webkit-overflow-scrolling:touch}
+  .ometa{padding:8px 14px; font-size:11px; color:var(--muted); border-bottom:1px solid var(--line);
+    display:flex; gap:14px; flex-wrap:wrap}
+  .ometa b{color:var(--fg-dim); font-weight:600}
+  pre#output{margin:0; padding:14px; white-space:pre-wrap; word-break:break-word;
+    font-size:12.5px; line-height:1.45; color:var(--white)}
+  iframe#term{width:100%; height:100%; border:0; background:#000}
+  .spin{display:inline-block; width:12px; height:12px; border:2px solid var(--line);
+    border-top-color:var(--fg); border-radius:50%; animation:sp .7s linear infinite; vertical-align:-2px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  /* ---------- modal target ---------- */
+  #modal{position:fixed; inset:0; z-index:30; display:none; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.7); padding:16px}
+  #modal.open{display:flex}
+  .card-modal{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    width:100%; max-width:420px; padding:18px}
+  .card-modal h3{margin:0 0 4px; color:var(--white); font-size:15px}
+  .card-modal p{margin:0 0 12px; color:var(--muted); font-size:12px; line-height:1.4}
+  .card-modal input{width:100%; background:#050705; color:var(--white); border:1px solid var(--line);
+    border-radius:10px; padding:11px 12px; font-family:inherit; font-size:14px; outline:none}
+  .card-modal input:focus{border-color:var(--fg-dim)}
+  .verr{color:var(--red); font-size:11px; min-height:14px; margin:6px 2px 0}
+  .mrow{display:flex; gap:8px; margin-top:14px}
+  .btn{flex:1; padding:11px; border-radius:10px; font-family:inherit; font-size:14px; cursor:pointer; border:1px solid var(--line)}
+  .btn.go{background:var(--fg); color:#04160a; font-weight:700; border-color:var(--fg)}
+  .btn.cancel{background:transparent; color:var(--muted)}
+  .btn:disabled{opacity:.4; cursor:not-allowed}
+  /* ---------- storico ---------- */
+  .hist-item{padding:12px 14px; border-bottom:1px solid var(--line); cursor:pointer}
+  .hist-item:active{background:#0a0d0a}
+  .hist-item .ht{color:var(--white); font-size:13px}
+  .hist-item .hs{color:var(--muted); font-size:11px; margin-top:3px; display:flex; gap:12px; flex-wrap:wrap}
+  .rc-ok{color:var(--fg-dim)} .rc-err{color:var(--red)}
+  /* ---------- toast ---------- */
+  #toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
+    background:var(--panel); border:1px solid var(--fg-dim); color:var(--white);
+    padding:10px 16px; border-radius:24px; font-size:13px; opacity:0; pointer-events:none;
+    transition:.25s; z-index:40}
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hrow">
+    <span class="brand">&gt;_ <b>Termux-NexusSEC-OS</b></span>
+    <span class="grow"></span>
+    <button class="iconbtn" id="torBtn" title="Instrada il traffico via Tor">🧅 Tor: off</button>
+    <button class="iconbtn" id="histBtn" title="Storico">🕘</button>
+  </div>
+  <input id="search" placeholder="cerca un tool…" autocomplete="off">
+  <small id="status">caricamento…</small>
+</header>
+
+<main id="app"></main>
+
+<!-- overlay risultato / terminale -->
+<div class="overlay" id="overlay">
+  <div class="obar">
+    <span class="otitle" id="ovtitle"></span>
+    <button class="iconbtn" id="tabBtn" hidden title="Apri il terminale in una scheda separata">↗ Scheda</button>
+    <button class="iconbtn" id="copyBtn" hidden>📋 Copia</button>
+    <button class="iconbtn" id="dlBtn" hidden>💾</button>
+    <button class="iconbtn" id="ovclose">✕</button>
+  </div>
+  <div class="ometa" id="ovmeta" hidden></div>
+  <div class="obody">
+    <pre id="output" hidden></pre>
+    <iframe id="term" hidden></iframe>
+    <div id="termHint" class="hint" hidden>Se il terminale resta vuoto, tocca <b>↗ Scheda</b> qui sopra: alcune versioni di ttyd non permettono l'incorporamento.</div>
+  </div>
+</div>
+
+<!-- modal input target -->
+<div id="modal">
+  <div class="card-modal">
+    <h3 id="mTitle"></h3>
+    <p id="mHelp"></p>
+    <input id="mInput" autocomplete="off" spellcheck="false">
+    <div class="verr" id="mErr"></div>
+    <div class="mrow">
+      <button class="btn cancel" id="mCancel">Annulla</button>
+      <button class="btn go" id="mGo">Esegui ▸</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+const $ = (s)=>document.querySelector(s);
+const overlay=$("#overlay"), output=$("#output"), term=$("#term");
+const modal=$("#modal"), mInput=$("#mInput"), mErr=$("#mErr"), mGo=$("#mGo");
+
+// icone per tool (fallback per categoria)
+const ICON = {
+  nmap_quick:"🛰️", nmap_ping:"📡", whois:"🌐", whatweb:"🔎", nikto:"🕷️",
+  sqlmap:"💉", metasploit:"🎯", hydra:"🐍", aircrack:"📶", john:"🔓", shell:"⌨️",
+  tor_ip:"🧅", shell_anon:"🕵️", rdap:"📇",
+};
+const CAT_ICON = {Network:"🌐", Web:"🕸️", Exploitation:"🎯", Cracking:"🔓", Anonimato:"🧅", Sistema:"🖥️"};
+
+let ALL = {};          // categorie -> tool
+let anonMode = false;  // instrada via Tor i tool compatibili
+const HKEY = "nexussec-history";
+
+/* ---------------- modalita' anonima (Tor) ---------------- */
+async function setTor(on){
+  const btn=$("#torBtn");
+  btn.textContent = on ? "🧅 Tor: avvio…" : "🧅 Tor: off";
+  try{
+    const r=await fetch("/api/tor/"+(on?"start":"stop"),{method:"POST"});
+    const d=await r.json();
+    anonMode = !!d.up;
+  }catch(e){ anonMode=false; toast("Tor non raggiungibile"); }
+  $("#torBtn").textContent = anonMode ? "🧅 Tor: ON" : "🧅 Tor: off";
+  $("#torBtn").style.borderColor = anonMode ? "var(--amber)" : "var(--line)";
+  $("#torBtn").style.color = anonMode ? "var(--amber)" : "var(--fg)";
+  if(on && anonMode) toast("Traffico TCP instradato via Tor (solo dove supportato)");
+}
+$("#torBtn").onclick=()=>setTor(!anonMode);
+function anonFor(tool){ return tool.force_anon || (anonMode && tool.anon_ok); }
+
+/* ---------------- toast ---------------- */
+let toastT;
+function toast(msg){
+  const t=$("#toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),1800);
+}
+
+/* ---------------- overlay ---------------- */
+$("#ovclose").onclick=()=>{ overlay.classList.remove("open"); term.src="about:blank"; };
+function resetOverlay(){
+  $("#copyBtn").hidden=true; $("#dlBtn").hidden=true; $("#ovmeta").hidden=true;
+  $("#tabBtn").hidden=true; $("#termHint").hidden=true;
+  output.hidden=true; term.hidden=true;
+}
+function showOutput(title, text, meta){
+  resetOverlay();
+  $("#ovtitle").textContent=title; output.hidden=false; output.textContent=text;
+  if(meta){ $("#ovmeta").hidden=false; $("#ovmeta").innerHTML=meta; }
+  overlay.classList.add("open");
+}
+let termUrl=null;
+function showTerminal(title, url){
+  resetOverlay();
+  termUrl=url;
+  $("#ovtitle").textContent=title;
+  $("#tabBtn").hidden=false; $("#termHint").hidden=false;
+  term.hidden=false; term.src=url;
+  overlay.classList.add("open");
+}
+$("#tabBtn").onclick=()=>{ if(termUrl) window.open(termUrl, "_blank", "noopener"); };
+$("#copyBtn").onclick=async()=>{ try{ await navigator.clipboard.writeText(output.textContent); toast("Copiato"); }catch{ toast("Copia non riuscita"); } };
+$("#dlBtn").onclick=()=>{
+  const blob=new Blob([output.textContent],{type:"text/plain"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=(overlay.dataset.tool||"output")+"-"+Date.now()+".txt"; a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+/* ---------------- validazione client (specchio del server) ---------------- */
+const RE_HOST=/^[A-Za-z0-9](?:[A-Za-z0-9._:-]*[A-Za-z0-9])?(?:\/\d{1,3})?$/;
+const RE_URL=/^https?:\/\/[A-Za-z0-9._:-]+(?:\/[^\s]*)?$/;
+function validTarget(kind,v){
+  v=(v||"").trim();
+  if(!v) return "Inserisci un valore.";
+  if(v.startsWith("-")) return "Non puo' iniziare con '-'.";
+  if(kind==="host" && !RE_HOST.test(v)) return "Host/IP/CIDR non valido.";
+  if(kind==="url" && !RE_URL.test(v)) return "URL non valido (http:// o https://).";
+  return "";
+}
+
+/* ---------------- modal target ---------------- */
+let modalResolve=null;
+function askTarget(tool){
+  return new Promise((resolve)=>{
+    modalResolve=resolve;
+    $("#mTitle").textContent=tool.name;
+    $("#mHelp").textContent=tool.help||"Inserisci il target.";
+    mInput.value=""; mErr.textContent=""; mGo.disabled=true;
+    mInput.placeholder = tool.target==="url" ? "https://esempio.it" : "192.168.1.0/24";
+    modal.classList.add("open"); setTimeout(()=>mInput.focus(),50);
+    mInput.dataset.kind=tool.target;
+  });
+}
+function closeModal(val){ modal.classList.remove("open"); if(modalResolve){ modalResolve(val); modalResolve=null; } }
+mInput.addEventListener("input",()=>{
+  const err=validTarget(mInput.dataset.kind, mInput.value);
+  mErr.textContent = mInput.value ? err : "";
+  mGo.disabled = !!err;
+});
+mInput.addEventListener("keydown",(e)=>{ if(e.key==="Enter" && !mGo.disabled) mGo.click(); });
+mGo.onclick=()=>closeModal(mInput.value.trim());
+$("#mCancel").onclick=()=>closeModal(null);
+modal.addEventListener("click",(e)=>{ if(e.target===modal) closeModal(null); });
+
+/* ---------------- esecuzione ---------------- */
+async function runOneshot(tool){
+  let target=null;
+  if(tool.target){ target=await askTarget(tool); if(target===null) return; }
+  const anon=anonFor(tool);
+  overlay.dataset.tool=tool.id;
+  showOutput(tool.name, "");
+  output.innerHTML='<span class="spin"></span> '+(anon?"avvio via Tor…":"esecuzione in corso…");
+  const t0=performance.now();
+  try{
+    const r=await fetch("/api/run",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({tool:tool.id,target,anon})});
+    const d=await r.json();
+    const ms=Math.round(performance.now()-t0);
+    if(!r.ok){ showOutput(tool.name,"Errore: "+(d.detail||r.status)); return; }
+    const text=(d.stdout||"")+(d.stderr?"\n[stderr]\n"+d.stderr:"");
+    const rcClass=d.returncode===0?"rc-ok":"rc-err";
+    const meta=`<span>${target?`<b>target</b> ${escapeHtml(target)}`:""}</span>`
+             +(anon?`<span><b>🧅 via Tor</b></span>`:"")
+             +`<span><b>uscita</b> <span class="${rcClass}">${d.returncode}</span></span>`
+             +`<span><b>tempo</b> ${ms} ms</span>`;
+    showOutput(tool.name, text||"(nessun output)", meta);
+    $("#copyBtn").hidden=false; $("#dlBtn").hidden=false;
+    saveHistory({tool:tool.id, name:tool.name, target, rc:d.returncode, text, ts:Date.now(), ms});
+  }catch(e){ showOutput(tool.name,"Errore di rete: "+e); }
+}
+async function openTerminal(tool){
+  overlay.dataset.tool=tool.id;
+  showOutput(tool.name,""); output.innerHTML='<span class="spin"></span> avvio terminale…';
+  try{
+    const r=await fetch("/api/terminal/"+tool.id,{method:"POST"});
+    const d=await r.json();
+    if(!r.ok){ showOutput(tool.name,"Errore: "+(d.detail||r.status)); return; }
+    showTerminal(tool.name, d.url);
+  }catch(e){ showOutput(tool.name,"Errore di rete: "+e); }
+}
+
+/* ---------------- storico (localStorage) ---------------- */
+function loadHistory(){ try{ return JSON.parse(localStorage.getItem(HKEY)||"[]"); }catch{ return []; } }
+function saveHistory(item){
+  const h=loadHistory(); h.unshift(item);
+  localStorage.setItem(HKEY, JSON.stringify(h.slice(0,50)));
+}
+$("#histBtn").onclick=()=>{
+  const h=loadHistory();
+  resetOverlay(); $("#ovtitle").textContent="Storico ("+h.length+")";
+  output.hidden=false;
+  if(!h.length){ output.innerHTML='<div class="empty">Nessuna esecuzione registrata.</div>'; overlay.classList.add("open"); return; }
+  output.innerHTML="";
+  const wrap=document.createElement("div");
+  h.forEach((it,i)=>{
+    const el=document.createElement("div"); el.className="hist-item";
+    const rc = it.rc===0?'<span class="rc-ok">ok</span>':`<span class="rc-err">rc ${it.rc}</span>`;
+    el.innerHTML=`<div class="ht">${ICON[it.tool]||"▸"} ${escapeHtml(it.name)}</div>`
+      +`<div class="hs"><span>${it.target?escapeHtml(it.target):"—"}</span>`
+      +`<span>${rc}</span><span>${new Date(it.ts).toLocaleString()}</span></div>`;
+    el.onclick=()=>{
+      overlay.dataset.tool=it.tool;
+      const meta=`<span>${it.target?`<b>target</b> ${escapeHtml(it.target)}`:""}</span>`
+               +`<span><b>uscita</b> ${it.rc}</span><span><b>${new Date(it.ts).toLocaleString()}</b></span>`;
+      showOutput(it.name, it.text, meta); $("#copyBtn").hidden=false; $("#dlBtn").hidden=false;
+    };
+    wrap.appendChild(el);
+  });
+  const clear=document.createElement("button"); clear.className="iconbtn"; clear.textContent="🗑 Svuota storico";
+  clear.style.margin="14px"; clear.onclick=()=>{ localStorage.removeItem(HKEY); toast("Storico svuotato"); overlay.classList.remove("open"); };
+  output.appendChild(wrap); output.appendChild(clear);
+  overlay.classList.add("open");
+}
+
+/* ---------------- rendering ---------------- */
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function toolCard(tool){
+  const b=document.createElement("button"); b.className="tool"; b.dataset.name=(tool.name+" "+(tool.help||"")).toLowerCase();
+  const interactive=tool.mode==="interactive";
+  const native=tool.mode==="native";
+  const onion=(tool.anon_ok||tool.force_anon)?`<span class="badge" title="instradabile via Tor">🧅</span>`:"";
+  const live=native?`<span class="badge" title="API esterna, non richiede Kali">🌐 live</span>`:"";
+  const mainBadge=interactive?"▮ terminale":"» run";
+  b.innerHTML=`<div class="top"><span class="emoji">${ICON[tool.id]||"▸"}</span>`
+    +`<span class="nm">${escapeHtml(tool.name)}</span></div>`
+    +`<span class="desc">${escapeHtml(tool.help||"")}</span>`
+    +`<div style="display:flex;gap:6px;flex-wrap:wrap">`
+    +`<span class="badge ${interactive?"term":""}">${mainBadge}</span>${live}${onion}</div>`;
+  b.onclick=()=>interactive?openTerminal(tool):runOneshot(tool);
+  return b;
+}
+function render(filter=""){
+  const app=$("#app"); app.innerHTML=""; filter=filter.trim().toLowerCase();
+  let shown=0;
+  for(const [cat,tools] of Object.entries(ALL)){
+    const vis=tools.filter(t=>!filter || (t.name+" "+(t.help||"")).toLowerCase().includes(filter));
+    if(!vis.length) continue;
+    const h=document.createElement("h2");
+    h.innerHTML=`<span class="ic">${CAT_ICON[cat]||"•"}</span>${escapeHtml(cat)} <span class="count">${vis.length}</span>`;
+    app.appendChild(h);
+    const g=document.createElement("div"); g.className="grid";
+    vis.forEach(t=>{ g.appendChild(toolCard(t)); shown++; });
+    app.appendChild(g);
+  }
+  if(!shown){ const e=document.createElement("div"); e.className="empty"; e.textContent="Nessun tool trovato."; app.appendChild(e); }
+}
+$("#search").addEventListener("input",e=>render(e.target.value));
+
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ if(modal.classList.contains("open"))closeModal(null); else if(overlay.classList.contains("open"))$("#ovclose").click(); } });
+
+async function syncTor(){
+  try{
+    const d=await (await fetch("/api/tor/status")).json();
+    anonMode=!!d.up;
+    $("#torBtn").textContent = anonMode ? "🧅 Tor: ON" : "🧅 Tor: off";
+    $("#torBtn").style.borderColor = anonMode ? "var(--amber)" : "var(--line)";
+    $("#torBtn").style.color = anonMode ? "var(--amber)" : "var(--fg)";
+  }catch(e){/* backend offline */}
+}
+async function load(){
+  try{
+    ALL=await (await fetch("/api/tools")).json();
+    const n=Object.values(ALL).reduce((a,v)=>a+v.length,0);
+    $("#status").textContent=n+" tool disponibili · "+Object.keys(ALL).length+" categorie";
+    render();
+    syncTor();
+  }catch(e){
+    $("#status").textContent="server non raggiungibile — avvia python server.py";
+    $("#app").innerHTML='<div class="empty">Backend offline.</div>';
+  }
+}
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+load();
+</script>
+</body>
+</html>

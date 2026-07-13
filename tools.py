@@ -1,0 +1,187 @@
+"""
+tools.py - Registry dei tool e validazione, condiviso tra server.py (backend
+reale su Termux) e mock_server.py (backend finto per testare la UI sul PC).
+
+Non importa nulla di esterno: cosi' e' usabile anche senza FastAPI installato.
+"""
+
+from __future__ import annotations
+
+import re
+
+DISTRO = "kali-rolling"
+
+# Prefisso per eseguire un comando dentro Kali (usato solo dal backend reale).
+PROOT = ["proot-distro", "login", DISTRO, "--"]
+
+# Prefisso per instradare un comando TCP attraverso Tor (modalita' "anonima").
+# -q = silenzioso. proxychains4 funziona solo con connessioni TCP connect().
+PROXYCHAINS = ["proxychains4", "-q"]
+
+# Porta SOCKS locale aperta da Tor dentro Kali (condivisa con Termux: stessa rete).
+TOR_SOCKS_PORT = 9050
+
+# --------------------------------------------------------------------------- #
+# Registry dei tool
+# --------------------------------------------------------------------------- #
+# mode: "oneshot"     -> HTTP + output JSON
+#       "interactive" -> terminale web via ttyd
+# target: None | "host" | "url"
+# cmd:    argv base (senza il target), a cui si aggiunge il target validato.
+
+TOOLS: dict[str, dict] = {
+    # --- Network -----------------------------------------------------------
+    "nmap_quick": {
+        "name": "Nmap · scansione rapida",
+        "category": "Network", "mode": "oneshot", "target": "host",
+        "cmd": ["nmap", "-sT", "-T4", "-F"],   # -sT = connect scan: instradabile via Tor
+        "anon_ok": True,
+        "help": "Porte comuni di un host o range (es. 192.168.1.1 o 192.168.1.0/24)",
+    },
+    "nmap_ping": {
+        "name": "Nmap · host attivi (ping sweep)",
+        "category": "Network", "mode": "oneshot", "target": "host",
+        "cmd": ["nmap", "-sn"],
+        "help": "Elenca gli host vivi in una rete (es. 192.168.1.0/24). NB: usa ICMP/ARP, non passa da Tor.",
+    },
+    "whois": {
+        "name": "Whois",
+        "category": "Network", "mode": "oneshot", "target": "host",
+        "cmd": ["whois"], "anon_ok": True,
+        "help": "Informazioni di registrazione di un dominio (tool Kali, via proot)",
+    },
+    "rdap": {
+        "name": "Whois RDAP (senza Kali)",
+        "category": "Network", "mode": "native", "target": "host",
+        "cmd": [],   # nativo: nessun comando shell, il server fa una richiesta HTTPS
+        "help": "Dati di un dominio o IP via RDAP (API pubblica). Non richiede proot: funziona subito.",
+    },
+    # --- Web ---------------------------------------------------------------
+    "whatweb": {
+        "name": "WhatWeb · fingerprint",
+        "category": "Web", "mode": "oneshot", "target": "url",
+        "cmd": ["whatweb", "--color=never"], "anon_ok": True,
+        "help": "Tecnologie usate da un sito (es. https://esempio.it)",
+    },
+    "nikto": {
+        "name": "Nikto · scanner web",
+        "category": "Web", "mode": "oneshot", "target": "url",
+        "cmd": ["nikto", "-nointeractive", "-h"], "anon_ok": True,
+        "help": "Vulnerabilita' note di un web server (es. https://esempio.it)",
+    },
+    "sqlmap": {
+        "name": "sqlmap (interattivo)",
+        "category": "Web", "mode": "interactive", "target": None,
+        "cmd": ["bash", "-lc", "sqlmap --wizard || bash"],
+        "help": "SQL injection; parte in modalita' wizard",
+    },
+    # --- Exploitation ------------------------------------------------------
+    "metasploit": {
+        "name": "Metasploit (console)",
+        "category": "Exploitation", "mode": "interactive", "target": None,
+        "cmd": ["bash", "-lc", "msfconsole || bash"],
+        "help": "Console Metasploit (richiede INSTALL_METASPLOIT=yes)",
+    },
+    "hydra": {
+        "name": "Hydra (interattivo)",
+        "category": "Exploitation", "mode": "interactive", "target": None,
+        "cmd": ["bash", "-lc", "hydra; bash"],
+        "help": "Brute-force di login; usa la shell per comporre il comando",
+    },
+    # --- Cracking offline --------------------------------------------------
+    "aircrack": {
+        "name": "Aircrack-ng (crack offline)",
+        "category": "Cracking", "mode": "interactive", "target": None,
+        "cmd": ["bash", "-lc", "echo 'Crack offline di un .cap gia catturato. Esempio:'; "
+                               "echo '  aircrack-ng -w wordlist.txt handshake.cap'; bash"],
+        "help": "Solo crack offline di handshake gia' catturati (la cattura non e' possibile su telefono stock)",
+    },
+    "john": {
+        "name": "John the Ripper (interattivo)",
+        "category": "Cracking", "mode": "interactive", "target": None,
+        "cmd": ["bash", "-lc", "echo 'Esempio: john --wordlist=rockyou.txt hash.txt'; bash"],
+        "help": "Cracking di hash da file",
+    },
+    # --- Anonimato ---------------------------------------------------------
+    "tor_ip": {
+        "name": "Verifica IP di uscita (Tor)",
+        "category": "Anonimato", "mode": "oneshot", "target": None,
+        "cmd": ["curl", "-s", "--max-time", "25", "https://check.torproject.org/api/ip"],
+        "anon_ok": True, "force_anon": True,
+        "help": "Mostra l'IP con cui esci verso l'esterno: attiva Tor e controlla che sia un exit node.",
+    },
+    "shell_anon": {
+        "name": "Shell anonima (via Tor)",
+        "category": "Anonimato", "mode": "interactive", "target": None,
+        "cmd": ["bash", "-lc", "echo 'Ogni comando TCP qui e instradato via Tor (proxychains).'; "
+                               "echo 'Esempio:  curl https://check.torproject.org/api/ip'; "
+                               "exec proxychains4 bash -l"],
+        "help": "Terminale in cui il traffico TCP passa da Tor. Richiede Tor attivo.",
+    },
+    # --- Sistema -----------------------------------------------------------
+    "shell": {
+        "name": "Shell Kali",
+        "category": "Sistema", "mode": "interactive", "target": None,
+        "cmd": ["bash", "-l"],
+        "help": "Terminale libero dentro Kali",
+    },
+}
+
+
+def inner_command(tool_id: str, target: str | None, anon: bool) -> list[str]:
+    """Costruisce il comando da eseguire DENTRO Kali (senza il prefisso proot).
+
+    Aggiunge il target validato e, se richiesto e supportato, il prefisso
+    proxychains per instradare il traffico via Tor. Solleva ValueError su input
+    non valido o richieste incoerenti.
+    """
+    tool = TOOLS.get(tool_id)
+    if tool is None:
+        raise ValueError("Tool sconosciuto.")
+
+    cmd = list(tool["cmd"])
+    if tool.get("target"):
+        cmd.append(validate_target(tool["target"], target or ""))
+
+    use_anon = tool.get("force_anon", False) or (anon and tool.get("anon_ok", False))
+    if use_anon:
+        if not tool.get("anon_ok"):
+            raise ValueError("Questo tool non e' instradabile via Tor.")
+        cmd = list(PROXYCHAINS) + cmd
+    return cmd
+
+
+def tools_by_category() -> dict[str, list]:
+    """Elenco dei tool per la UI, raggruppati per categoria."""
+    out: dict[str, list] = {}
+    for tid, t in TOOLS.items():
+        out.setdefault(t["category"], []).append(
+            {"id": tid, "name": t["name"], "mode": t["mode"],
+             "target": t["target"], "help": t.get("help", ""),
+             "anon_ok": t.get("anon_ok", False), "force_anon": t.get("force_anon", False)}
+        )
+    return out
+
+
+# --------------------------------------------------------------------------- #
+# Validazione input
+# --------------------------------------------------------------------------- #
+
+# host / IP / hostname / CIDR
+_HOST_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9._:-]*[A-Za-z0-9])?(?:/\d{1,3})?$")
+# url http(s)
+_URL_RE = re.compile(r"^https?://[A-Za-z0-9._:-]+(?:/[A-Za-z0-9._~:/?#\[\]@!$&'()*+,;=%-]*)?$")
+
+
+def validate_target(kind: str, value: str) -> str:
+    """Ritorna il target ripulito o solleva ValueError se non e' valido."""
+    value = (value or "").strip()
+    if not value:
+        raise ValueError("Target mancante.")
+    if value.startswith("-"):
+        raise ValueError("Target non valido (non puo' iniziare con '-').")
+    if kind == "host" and _HOST_RE.match(value):
+        return value
+    if kind == "url" and _URL_RE.match(value):
+        return value
+    raise ValueError(f"Target non valido per il tipo '{kind}'.")
