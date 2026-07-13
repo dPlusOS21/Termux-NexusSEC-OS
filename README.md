@@ -347,11 +347,47 @@ il toggle Tor, lo storico e il salvataggio output sono identici alla versione re
 
 ---
 
+## Catalogo tool installabili (extra)
+
+Oltre ai tool di base, l'app conosce un **catalogo** di programmi tipici di Kali che
+**non** vengono installati di default (per non occupare spazio). Nella UI premi il
+pulsante **🧰** nell'header: i tool del catalogo compaiono in grigio con **＋ da
+installare**; toccandone uno vedi il comando esatto per installarlo. Una volta
+installato (e dopo **↻**), diventa un pulsante attivo come gli altri.
+
+La maggior parte sta nel **repo di Kali**: puoi abilitarlo una volta sola con
+`ENABLE_KALI_REPO=yes ./install.sh` (oppure a mano, vedi sotto), poi installarli con
+`apt install`.
+
+| Tool | Tipo | A cosa serve |
+|------|------|--------------|
+| **DNSenum** | recon DNS | Sottodomini, record e tentativi di zone transfer di un dominio |
+| **theHarvester** | OSINT | Raccoglie email, sottodomini e host da fonti pubbliche |
+| **WPScan** | scanner CMS | Vulnerabilità di siti WordPress (plugin, temi, utenti) |
+| **Gobuster** | content discovery | Brute force di directory, DNS e vhost via wordlist |
+| **Dirb** | content discovery | Scanner classico di contenuti/directory web |
+| **Commix** | exploit web | Rileva e sfrutta vulnerabilità di *command injection* |
+| **Hashcat** | password cracking | Cracking di hash ad alte prestazioni (qui via CPU) |
+| **hashID** | utility | Riconosce il tipo/algoritmo di un hash sconosciuto |
+| **Crunch** | utility | Genera wordlist personalizzate per pattern/charset |
+| **CeWL** | utility | Crea una wordlist dalle parole presenti in un sito |
+| **SearchSploit** | ricerca exploit | Cerca exploit pubblici noti (Exploit-DB), offline |
+| **enum4linux** | enumeration | Estrae info da server SMB/Windows (utenti, share) |
+| **Medusa** | brute force | Login su servizi di rete (alternativa a Hydra) |
+| **ExifTool** | forense/OSINT | Legge e modifica i metadati di foto e file |
+
+> **Nota onestà:** i tool wireless di Kali (aircrack *cattura*, reaver, wifite,
+> kismet…) **non** sono nel catalogo perché richiedono monitor mode/root e non
+> funzionano su telefono stock. Puoi comunque installarli a mano, ma non li vedrai
+> lavorare. Il catalogo elenca solo cose che **funzionano davvero** senza root.
+
+---
+
 ## Aggiungere nuovi tool
 
-I 14+ tool mostrati sono solo un set di partenza: il catalogo installabile è
-enorme (tutti i pacchetti di Termux + tutti quelli di Debian + il repo di Kali se
-lo aggiungi). Ci sono due livelli.
+I tool mostrati (base + catalogo) sono solo un punto di partenza: l'insieme
+installabile è enorme (tutti i pacchetti di Termux + tutti quelli di Debian + il
+repo di Kali). Ci sono due livelli.
 
 ### A) Installare un tool che è già nel registro
 
@@ -435,6 +471,10 @@ lanciare **qualunque** comando installato.
 
 ## Estensioni possibili (roadmap)
 
+- **Catalogo installabile** (✅ incluso): tool extra di Kali mostrati come "da
+  installare" col pulsante 🧰 (vedi sezione *Catalogo tool installabili*). Prossimo
+  passo: installazione **con un tocco** dall'app (un endpoint che lancia `apt/pkg`),
+  invece di copiare il comando a mano.
 - **Altri tool `native`**: DNS → DNS-over-HTTPS, certificati → crt.sh, geo-IP.
   Stesso schema di `rdap`, in `native.py`.
 - **Auto-avvio** con **Termux:Boot** (lancia `server.py` all'accensione).

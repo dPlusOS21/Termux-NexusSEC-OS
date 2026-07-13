@@ -19,6 +19,7 @@ set -euo pipefail
 
 DISTRO="debian"
 INSTALL_METASPLOIT="${INSTALL_METASPLOIT:-no}"
+ENABLE_KALI_REPO="${ENABLE_KALI_REPO:-no}"    # abilita il repo Kali nel Debian
 
 log()  { printf '\033[1;32m[+]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[!]\033[0m %s\n' "$*"; }
@@ -121,6 +122,22 @@ tcp_connect_time_out 8000
 [ProxyList]
 socks5 127.0.0.1 9050
 EOF'
+
+# --- 5b. Repo Kali opzionale (per i tool del catalogo, on-demand) -----------
+if [ "$ENABLE_KALI_REPO" = "yes" ]; then
+    log "Abilito il repo di Kali dentro Debian (per i tool del catalogo)..."
+    proot-distro login "$DISTRO" -- bash -c '
+        set -e
+        echo "deb https://http.kali.org/kali kali-rolling main contrib non-free non-free-firmware" \
+            > /etc/apt/sources.list.d/kali.list
+        apt-get install -y --no-install-recommends kali-archive-keyring || \
+            apt-get install -y --no-install-recommends gnupg
+        apt-get update -y
+    ' && log "Repo Kali abilitato: ora 'apt install <tool>' vede il catalogo Kali." \
+      || warn "Abilitazione repo Kali fallita (continuo)."
+else
+    warn "Repo Kali non abilitato. Per i tool del catalogo: ENABLE_KALI_REPO=yes ./install.sh"
+fi
 
 # --- 6. Metasploit opzionale (installer ufficiale Rapid7 dentro Debian) -----
 if [ "$INSTALL_METASPLOIT" = "yes" ]; then

@@ -186,6 +186,7 @@
     <span class="brand">&gt;_ <b>Termux-NexusSEC-OS</b></span>
     <span class="grow"></span>
     <button class="iconbtn" id="torBtn" title="Instrada il traffico via Tor">🧅 Tor: off</button>
+    <button class="iconbtn" id="catBtn" title="Mostra i tool installabili dal catalogo">🧰</button>
     <button class="iconbtn" id="histBtn" title="Storico">🕘</button>
   </div>
   <input id="search" placeholder="cerca un tool…" autocomplete="off">
@@ -264,6 +265,9 @@ const ICON = {
   sqlmap:"💉", metasploit:"🎯", hydra:"🐍", aircrack:"📶", john:"🔓", shell:"⌨️",
   tor_ip:"🧅", shell_anon:"🕵️", rdap:"📇",
   dig:"🧭", dnsrecon:"🔬", wafw00f:"🛡️", wfuzz:"🌀",
+  dnsenum:"🧬", theharvester:"🌾", wpscan:"📰", gobuster:"🚪", dirb:"📁",
+  commix:"🧨", hashcat:"⚡", hashid:"🏷️", crunch:"🧱", cewl:"📝",
+  searchsploit:"🔍", enum4linux:"🗂️", medusa:"🐙", exiftool:"📷",
 };
 const CAT_ICON = {Network:"🌐", Web:"🕸️", Exploitation:"🎯", Cracking:"🔓", Anonimato:"🧅", Sistema:"🖥️"};
 // Dove gira il tool: Termux nativo (leggero/veloce) o Debian minimale in proot.
@@ -274,6 +278,7 @@ const RUNTIME = {
 
 let ALL = {};          // categorie -> tool
 let anonMode = false;  // instrada via Tor i tool compatibili
+let showCatalog = false; // mostra anche i tool "da installare" del catalogo
 const HKEY = "nexussec-history";
 
 /* ---------------- modalita' anonima (Tor) ---------------- */
@@ -446,18 +451,27 @@ $("#histBtn").onclick=()=>{
 
 /* ---------------- rendering ---------------- */
 function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
-function installCmd(tool){
-  const bin=tool.bin||tool.id;
-  return tool.runtime==="proot"
-    ? "proot-distro login debian -- apt install "+bin
-    : "pkg install "+bin+"      (se non c'è: pkg install root-repo && pkg install "+bin+")";
-}
 function installHint(tool){
+  const pkg=tool.pkg||tool.bin||tool.id;
+  let body="Questo tool non risulta installato.\n\nPer installarlo, da Termux:\n\n";
+  if(tool.runtime==="termux"){
+    body+="    pkg install "+pkg+"\n"+
+          "    (se non lo trova:  pkg install root-repo && pkg install "+pkg+")\n";
+  } else if(tool.repo==="kali"){
+    body+="  # è un tool del repo di Kali: abilitalo una volta sola nel Debian…\n"+
+          "    proot-distro login debian\n"+
+          "    echo 'deb https://http.kali.org/kali kali-rolling main contrib non-free' \\\n"+
+          "        > /etc/apt/sources.list.d/kali.list\n"+
+          "    apt install -y kali-archive-keyring && apt update\n"+
+          "  # …poi installa il tool:\n"+
+          "    apt install "+pkg+"\n"+
+          "\n  (in alternativa: ENABLE_KALI_REPO=yes ./install.sh, una volta sola)\n";
+  } else {
+    body+="    proot-distro login debian -- apt install "+pkg+"\n";
+  }
+  body+="\nPoi riapri il menu ▤ Applicazioni e tocca ↻ per aggiornare l'elenco.";
   overlay.dataset.tool=tool.id;
-  showOutput(tool.name,
-    "Questo tool non risulta installato.\n\n"+
-    "Per installarlo, da Termux esegui:\n\n    "+installCmd(tool)+"\n\n"+
-    "Poi riapri il menu ▤ Applicazioni e tocca ↻ per aggiornare l'elenco.");
+  showOutput(tool.name, body);
 }
 function toolCard(tool){
   const b=document.createElement("button"); b.className="tool"; b.dataset.name=(tool.name+" "+(tool.help||"")).toLowerCase();
@@ -477,11 +491,16 @@ function toolCard(tool){
   b.onclick=()=> off ? installHint(tool) : (interactive?openTerminal(tool):runOneshot(tool));
   return b;
 }
+function visibleInCatalog(t){
+  // i tool del catalogo NON installati si vedono solo col toggle 🧰 attivo
+  return showCatalog || !(t.catalog && t.installed===false);
+}
 function render(filter=""){
   const app=$("#app"); app.innerHTML=""; filter=filter.trim().toLowerCase();
   let shown=0;
   for(const [cat,tools] of Object.entries(ALL)){
-    const vis=tools.filter(t=>!filter || (t.name+" "+(t.help||"")).toLowerCase().includes(filter));
+    const vis=tools.filter(t=>visibleInCatalog(t) &&
+      (!filter || (t.name+" "+(t.help||"")).toLowerCase().includes(filter)));
     if(!vis.length) continue;
     const h=document.createElement("h2");
     h.innerHTML=`<span class="ic">${CAT_ICON[cat]||"•"}</span>${escapeHtml(cat)} <span class="count">${vis.length}</span>`;
@@ -493,6 +512,14 @@ function render(filter=""){
   if(!shown){ const e=document.createElement("div"); e.className="empty"; e.textContent="Nessun tool trovato."; app.appendChild(e); }
 }
 $("#search").addEventListener("input",e=>render(e.target.value));
+$("#catBtn").onclick=()=>{
+  showCatalog=!showCatalog;
+  const b=$("#catBtn");
+  b.style.borderColor = showCatalog ? "var(--amber)" : "var(--line)";
+  b.style.color = showCatalog ? "var(--amber)" : "var(--fg)";
+  render($("#search").value);
+  toast(showCatalog ? "Catalogo tool installabili mostrato" : "Catalogo nascosto");
+};
 
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"){
   if($("#startmenu").classList.contains("open")) closeStart();
@@ -565,7 +592,8 @@ async function load(){
     ALL=await (await fetch("/api/tools")).json();
     const all=Object.values(ALL).flat();
     const ready=all.filter(t=>t.installed!==false).length;
-    $("#status").textContent=ready+" di "+all.length+" tool installati · tocca ▤ NexusSEC per il menu";
+    const catN=all.filter(t=>t.catalog).length;
+    $("#status").textContent=ready+" tool installati · "+catN+" nel catalogo (🧰) · ▤ per il menu";
     render();
     syncTor();
   }catch(e){

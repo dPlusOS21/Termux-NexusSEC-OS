@@ -160,6 +160,112 @@ TOOLS: dict[str, dict] = {
         "cmd": ["bash", "-l"],
         "help": "Terminale libero dentro il Debian minimale (proot)",
     },
+
+    # ======================================================================= #
+    # CATALOGO (catalog=True): tool extra NON installati di default. Compaiono
+    # nella UI come "da installare" (toggle 🧰). "repo":"kali" indica che il
+    # pacchetto sta nel repo di Kali, non in Debian standard.
+    # ======================================================================= #
+    # --- Network / OSINT ---------------------------------------------------
+    "dnsenum": {
+        "name": "DNSenum · enumerazione DNS",
+        "category": "Network", "mode": "oneshot", "runtime": "proot", "target": "host",
+        "cmd": ["dnsenum"], "catalog": True, "repo": "kali",
+        "help": "Tipo: recon DNS. Sottodomini, record e tentativi di zone transfer.",
+    },
+    "theharvester": {
+        "name": "theHarvester · OSINT",
+        "category": "Network", "mode": "oneshot", "runtime": "proot", "target": "host",
+        "cmd": ["theHarvester", "-b", "all", "-d"], "catalog": True, "repo": "kali",
+        "pkg": "theharvester",
+        "help": "Tipo: OSINT. Raccoglie email, sottodomini e host da fonti pubbliche.",
+    },
+    # --- Web ---------------------------------------------------------------
+    "wpscan": {
+        "name": "WPScan · sicurezza WordPress",
+        "category": "Web", "mode": "oneshot", "runtime": "proot", "target": "url",
+        "cmd": ["wpscan", "--no-banner", "--url"], "anon_ok": True,
+        "catalog": True, "repo": "kali",
+        "help": "Tipo: scanner CMS. Vulnerabilita' di siti WordPress (plugin/tema/utenti).",
+    },
+    "gobuster": {
+        "name": "Gobuster · brute dir/DNS",
+        "category": "Web", "mode": "interactive", "runtime": "proot", "target": None,
+        "cmd": ["bash", "-lc", "echo 'Esempio: gobuster dir -u https://sito -w wordlist.txt'; bash"],
+        "catalog": True, "repo": "kali",
+        "help": "Tipo: content discovery. Brute force di directory, DNS e vhost via wordlist.",
+    },
+    "dirb": {
+        "name": "Dirb · scanner directory",
+        "category": "Web", "mode": "interactive", "runtime": "proot", "target": None,
+        "cmd": ["bash", "-lc", "echo 'Esempio: dirb https://sito /usr/share/wordlists/dirb/common.txt'; bash"],
+        "catalog": True, "repo": "kali",
+        "help": "Tipo: content discovery. Scanner classico di contenuti/directory web.",
+    },
+    "commix": {
+        "name": "Commix · command injection",
+        "category": "Web", "mode": "interactive", "runtime": "proot", "target": None,
+        "cmd": ["bash", "-lc", "echo 'Esempio: commix -u \"https://sito/page?id=1\"'; bash"],
+        "catalog": True, "repo": "kali",
+        "help": "Tipo: exploit web. Rileva e sfrutta vulnerabilita' di command injection.",
+    },
+    # --- Cracking ----------------------------------------------------------
+    "hashcat": {
+        "name": "Hashcat · cracking hash",
+        "category": "Cracking", "mode": "interactive", "runtime": "termux", "target": None,
+        "cmd": ["bash", "-lc", "echo 'Esempio: hashcat -m 0 hash.txt wordlist.txt'; bash"],
+        "catalog": True,
+        "help": "Tipo: password cracking. Cracking di hash ad alte prestazioni (via CPU).",
+    },
+    "hashid": {
+        "name": "hashID · identifica hash",
+        "category": "Cracking", "mode": "interactive", "runtime": "termux", "target": None,
+        "cmd": ["bash", "-lc", "echo 'Esempio: hashid \"5f4dcc3b5aa765d61d8327deb882cf99\"'; bash"],
+        "catalog": True,
+        "help": "Tipo: utility. Riconosce il tipo/algoritmo di un hash sconosciuto.",
+    },
+    "crunch": {
+        "name": "Crunch · generatore wordlist",
+        "category": "Cracking", "mode": "interactive", "runtime": "proot", "target": None,
+        "cmd": ["bash", "-lc", "echo 'Esempio: crunch 6 8 abc123 -o wordlist.txt'; bash"],
+        "catalog": True, "repo": "kali",
+        "help": "Tipo: utility. Genera wordlist personalizzate per pattern/charset.",
+    },
+    "cewl": {
+        "name": "CeWL · wordlist da sito",
+        "category": "Cracking", "mode": "oneshot", "runtime": "proot", "target": "url",
+        "cmd": ["cewl"], "anon_ok": True, "catalog": True, "repo": "kali",
+        "help": "Tipo: utility. Crea una wordlist dalle parole presenti in un sito.",
+    },
+    # --- Exploitation ------------------------------------------------------
+    "searchsploit": {
+        "name": "SearchSploit · Exploit-DB",
+        "category": "Exploitation", "mode": "interactive", "runtime": "proot", "target": None,
+        "cmd": ["bash", "-lc", "echo 'Esempio: searchsploit apache 2.4'; bash"],
+        "catalog": True, "repo": "kali", "pkg": "exploitdb",
+        "help": "Tipo: ricerca exploit. Cerca exploit pubblici noti (Exploit-DB), offline.",
+    },
+    "enum4linux": {
+        "name": "enum4linux · enum SMB",
+        "category": "Exploitation", "mode": "oneshot", "runtime": "proot", "target": "host",
+        "cmd": ["enum4linux", "-a"], "anon_ok": True, "catalog": True, "repo": "kali",
+        "help": "Tipo: enumeration. Estrae info da server SMB/Windows (utenti, share).",
+    },
+    "medusa": {
+        "name": "Medusa · brute force login",
+        "category": "Exploitation", "mode": "interactive", "runtime": "proot", "target": None,
+        "cmd": ["bash", "-lc", "echo 'Esempio: medusa -h 10.0.0.1 -u admin -P pass.txt -M ssh'; bash"],
+        "catalog": True, "repo": "kali",
+        "help": "Tipo: brute force. Login su servizi di rete (alternativa a Hydra).",
+    },
+    # --- Sistema / utility -------------------------------------------------
+    "exiftool": {
+        "name": "ExifTool · metadati file",
+        "category": "Sistema", "mode": "interactive", "runtime": "termux", "target": None,
+        "cmd": ["bash", "-lc", "echo 'Esempio: exiftool foto.jpg'; bash"],
+        "catalog": True,
+        "help": "Tipo: forense/OSINT. Legge e modifica i metadati di foto e file.",
+    },
 }
 
 
@@ -195,6 +301,12 @@ BIN = {
     "sqlmap": "sqlmap", "wfuzz": "wfuzz", "metasploit": "msfconsole", "hydra": "hydra",
     "aircrack": "aircrack-ng", "john": "john", "tor_ip": "curl",
     "shell_anon": "proxychains4", "shell": "bash",
+    # catalogo (extra, on-demand)
+    "dnsenum": "dnsenum", "theharvester": "theHarvester", "wpscan": "wpscan",
+    "gobuster": "gobuster", "dirb": "dirb", "commix": "commix",
+    "hashcat": "hashcat", "hashid": "hashid", "crunch": "crunch", "cewl": "cewl",
+    "searchsploit": "searchsploit", "enum4linux": "enum4linux", "medusa": "medusa",
+    "exiftool": "exiftool",
 }
 
 
@@ -235,7 +347,10 @@ def tools_by_category() -> dict[str, list]:
         out.setdefault(t["category"], []).append(
             {"id": tid, "name": t["name"], "mode": t["mode"],
              "runtime": t.get("runtime"),      # "termux" | "proot" | None (native)
-             "bin": BIN.get(tid),              # binario da installare (per la UI)
+             "bin": BIN.get(tid),              # binario da rilevare
+             "pkg": t.get("pkg"),              # pacchetto da installare (se != bin)
+             "repo": t.get("repo"),            # "kali" se serve il repo Kali nel Debian
+             "catalog": t.get("catalog", False),   # tool extra, mostrato su richiesta
              "target": t["target"], "help": t.get("help", ""),
              "anon_ok": t.get("anon_ok", False), "force_anon": t.get("force_anon", False)}
         )
