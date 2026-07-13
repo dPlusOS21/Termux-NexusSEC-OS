@@ -19,7 +19,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from native import run_native
-from tools import TOOLS, inner_command, tools_by_category, validate_target
+from tools import TOOLS, inner_command, profiles_list, tools_by_category, validate_target
 
 HOST, PORT = "127.0.0.1", 8000
 _MOCK_TOR = {"up": False}       # stato Tor simulato per il mock
@@ -97,17 +97,21 @@ class Handler(BaseHTTPRequestHandler):
 
     # ------------------------------------------------------------------ GET
     def _tools_payload(self):
-        # Sul PC non possiamo rilevare i binari: mostriamo tutto come installato.
+        # Sul PC non possiamo rilevare i binari davvero: simuliamo uno stato
+        # plausibile -> i tool di BASE installati, quelli del CATALOGO no (cosi'
+        # in anteprima si vedono lo stato "da installare" e i profili).
         data = tools_by_category()
         for tools in data.values():
             for t in tools:
-                t["installed"] = True
+                t["installed"] = not t.get("catalog", False)
         return data
 
     def do_GET(self):
         path = urlparse(self.path).path
         if path == "/api/tools":
             return self._json(200, self._tools_payload())
+        if path == "/api/profiles":
+            return self._json(200, profiles_list())
         if path == "/api/tor/status":
             return self._json(200, {"up": _MOCK_TOR["up"]})
         if path.startswith("/mock/term/"):

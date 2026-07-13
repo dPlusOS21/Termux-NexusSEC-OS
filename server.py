@@ -35,7 +35,7 @@ from pydantic import BaseModel
 
 from native import run_native
 from tools import (PROOT, TOOLS, TOR_SOCKS_PORT, detection_targets, exec_prefix,
-                  inner_command, tools_by_category, validate_target)
+                  inner_command, profiles_list, tools_by_category, validate_target)
 
 # --------------------------------------------------------------------------- #
 # Configurazione
@@ -185,12 +185,20 @@ def refresh_tools():
     return list_tools()
 
 
+@app.get("/api/profiles")
+def list_profiles():
+    """Profili (set di tool installabili insieme), stile distro NexusSec-OS."""
+    return profiles_list()
+
+
 @app.post("/api/run")
 def run_oneshot(req: RunRequest):
     """Esegue un tool one-shot (Termux o proot) e ne restituisce l'output."""
     tool = TOOLS.get(req.tool)
     if tool is None:
         raise HTTPException(404, "Tool sconosciuto.")
+    if tool.get("works") is False:
+        raise HTTPException(400, tool.get("reason", "Non disponibile su telefono stock."))
 
     # Tool "nativi": richiesta HTTP diretta dal server, senza proot.
     if tool["mode"] == "native":
@@ -241,6 +249,8 @@ def open_terminal(tool_id: str):
     tool = TOOLS.get(tool_id)
     if tool is None:
         raise HTTPException(404, "Tool sconosciuto.")
+    if tool.get("works") is False:
+        raise HTTPException(400, tool.get("reason", "Non disponibile su telefono stock."))
     if tool["mode"] != "interactive":
         raise HTTPException(400, "Questo tool e' one-shot: usa /api/run.")
     _require("ttyd")

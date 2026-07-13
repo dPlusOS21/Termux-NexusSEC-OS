@@ -325,14 +325,19 @@ il toggle Tor, lo storico e il salvataggio output sono identici alla versione re
 
 ## Funzioni della UI
 
-- **Barra desktop** in basso (stile OS): pulsante **▤ NexusSEC** che apre il menu
-  **Applicazioni** (i tool installati, raggruppati per categoria), scorciatoia
+- **Barra desktop** in basso (stile OS): pulsante **▤ NexusSEC** che apre l'**hub**
+  (non ripete la griglia): i **Profili**, i controlli di **Sistema** (terminale, Tor,
+  catalogo, aggiorna, storico) e i tool **Recenti**. In basso anche scorciatoia
   **⌨️ terminale**, toggle **🧅 Tor**, i terminali aperti come "finestre", e una tray
   con stato Tor e orologio.
+- **Profili** (come la distro): Pen Testing / Web / OSINT / Forensics / Reverse.
+  Selezionandone uno la pagina si filtra ai suoi tool e un banner offre **⤓ Installa
+  profilo** (il comando che installa in blocco i tool mancanti del profilo).
 - **Rilevamento automatico**: ogni tool **installato** ha sempre un pulsante attivo;
   quelli non installati appaiono in grigio con **＋ da installare** e, se toccati,
-  mostrano il comando esatto per installarli. Il tasto **↻** nel menu riesegue il
-  rilevamento (utile subito dopo un'installazione).
+  mostrano il comando esatto per installarli. Il tasto **↻** riesegue il rilevamento.
+- **Onestà**: i tool che sul telefono non possono girare (Wi-Fi/monitor mode, MITM,
+  GUI) sono marcati **❌ non su stock** e, se toccati, spiegano perché.
 - **Griglia per categoria** con icone e ricerca istantanea; badge per modalità
   (`» run` / `▮ terminale` / `🌐 live`), per runtime (📦 Termux / 🐧 Debian) e per
   Tor (🧅).
@@ -347,39 +352,34 @@ il toggle Tor, lo storico e il salvataggio output sono identici alla versione re
 
 ---
 
-## Catalogo tool installabili (extra)
+## Profili e catalogo tool
 
-Oltre ai tool di base, l'app conosce un **catalogo** di programmi tipici di Kali che
-**non** vengono installati di default (per non occupare spazio). Nella UI premi il
-pulsante **🧰** nell'header: i tool del catalogo compaiono in grigio con **＋ da
-installare**; toccandone uno vedi il comando esatto per installarlo. Una volta
-installato (e dopo **↻**), diventa un pulsante attivo come gli altri.
+L'app conosce un **catalogo di ~100 tool** (portato dai profili della distro
+NexusSec-OS), che **non** vengono installati di default — li installi on-demand.
+Sono organizzati in **profili**, come sulla distro:
 
-La maggior parte sta nel **repo di Kali**: puoi abilitarlo una volta sola con
-`ENABLE_KALI_REPO=yes ./install.sh` (oppure a mano, vedi sotto), poi installarli con
-`apt install`.
+| Profilo | Cosa contiene (esempi) |
+|---------|------------------------|
+| 🎯 **Pen Testing** | nmap, hydra, john, hashcat, metasploit, searchsploit, medusa, ncrack, patator, netexec, impacket, bloodhound, routersploit, set, naabu… |
+| 🕸️ **Web** | nikto, whatweb, wafw00f, sqlmap, gobuster, ffuf, feroxbuster, nuclei, wapiti, joomscan, sslscan, dalfox, wpscan, commix, mitmproxy… |
+| 🔎 **OSINT** | whois, dig, dnsrecon, dnsenum, theHarvester, recon-ng, shodan, holehe, sherlock, subfinder, amass, spiderfoot, exiftool… |
+| 🧪 **Forensics** | binwalk, foremost, scalpel, testdisk, sleuthkit, steghide, stegseek, yara, clamav, volatility3, fcrackzip, pdfcrack, lynis… |
+| 🧩 **Reverse** | radare2, gdb, strace, ltrace, jadx, apktool, binutils, hexedit, pev, floss… |
 
-| Tool | Tipo | A cosa serve |
-|------|------|--------------|
-| **DNSenum** | recon DNS | Sottodomini, record e tentativi di zone transfer di un dominio |
-| **theHarvester** | OSINT | Raccoglie email, sottodomini e host da fonti pubbliche |
-| **WPScan** | scanner CMS | Vulnerabilità di siti WordPress (plugin, temi, utenti) |
-| **Gobuster** | content discovery | Brute force di directory, DNS e vhost via wordlist |
-| **Dirb** | content discovery | Scanner classico di contenuti/directory web |
-| **Commix** | exploit web | Rileva e sfrutta vulnerabilità di *command injection* |
-| **Hashcat** | password cracking | Cracking di hash ad alte prestazioni (qui via CPU) |
-| **hashID** | utility | Riconosce il tipo/algoritmo di un hash sconosciuto |
-| **Crunch** | utility | Genera wordlist personalizzate per pattern/charset |
-| **CeWL** | utility | Crea una wordlist dalle parole presenti in un sito |
-| **SearchSploit** | ricerca exploit | Cerca exploit pubblici noti (Exploit-DB), offline |
-| **enum4linux** | enumeration | Estrae info da server SMB/Windows (utenti, share) |
-| **Medusa** | brute force | Login su servizi di rete (alternativa a Hydra) |
-| **ExifTool** | forense/OSINT | Legge e modifica i metadati di foto e file |
+**Come si usa:** apri il menu **▤** in basso, scegli un profilo → la pagina si filtra
+ai suoi tool e il banner offre **⤓ Installa profilo**, che ti dà il comando per
+installare in blocco i tool mancanti (raggruppati per metodo: `pkg`, `pip`, `apt`
+Debian, `apt` Kali). Oppure attiva il toggle **🧰** per vedere tutto il catalogo e
+installare i singoli tool.
 
-> **Nota onestà:** i tool wireless di Kali (aircrack *cattura*, reaver, wifite,
-> kismet…) **non** sono nel catalogo perché richiedono monitor mode/root e non
-> funzionano su telefono stock. Puoi comunque installarli a mano, ma non li vedrai
-> lavorare. Il catalogo elenca solo cose che **funzionano davvero** senza root.
+I tool del repo di Kali si abilitano una volta sola con
+`ENABLE_KALI_REPO=yes ./install.sh` (o a mano, vedi sotto).
+
+> **Nota onestà:** ~22 tool della distro (Wi-Fi/monitor mode come aircrack *cattura*,
+> reaver, wifite, kismet; MITM come bettercap/ettercap; sniffing come tcpdump/tshark;
+> GUI come wireshark/burpsuite/ghidra) sono elencati ma marcati **❌ non su stock**:
+> richiedono root, monitor mode o un desktop X11, impossibili su telefono non
+> rootato. Li mostriamo per completezza, ma non gireranno.
 
 ---
 
@@ -471,10 +471,10 @@ lanciare **qualunque** comando installato.
 
 ## Estensioni possibili (roadmap)
 
-- **Catalogo installabile** (✅ incluso): tool extra di Kali mostrati come "da
-  installare" col pulsante 🧰 (vedi sezione *Catalogo tool installabili*). Prossimo
-  passo: installazione **con un tocco** dall'app (un endpoint che lancia `apt/pkg`),
-  invece di copiare il comando a mano.
+- **Profili + catalogo ~100 tool** (✅ incluso): set installabili in blocco, stile
+  distro (vedi *Profili e catalogo tool*). Prossimo passo: installazione **con un
+  tocco** dall'app (un endpoint che lancia `apt/pkg/pip`), invece di copiare il
+  comando a mano.
 - **Altri tool `native`**: DNS → DNS-over-HTTPS, certificati → crt.sh, geo-IP.
   Stesso schema di `rdap`, in `native.py`.
 - **Auto-avvio** con **Termux:Boot** (lancia `server.py` all'accensione).

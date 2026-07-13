@@ -114,9 +114,39 @@
     transition:.25s; z-index:60}
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
   /* ---------- tool non installato ---------- */
-  .tool.off{opacity:.45; filter:grayscale(.4)}
+  .tool.off{opacity:.5; filter:grayscale(.35)}
   .tool.off:hover{border-color:var(--line); box-shadow:none}
   .tool .badge.off{color:var(--amber); border-color:#4a3a12}
+  .tool .badge.nope{color:var(--red); border-color:#5a1e1e}
+  /* ---------- banner profilo attivo ---------- */
+  .pbanner{display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    background:linear-gradient(180deg,#0e1a12,#0a130d); border:1px solid var(--fg-dim);
+    border-radius:12px; padding:11px 13px; margin:4px 4px 6px}
+  .pbanner .pi{font-size:20px}
+  .pbanner .pt{flex:1; min-width:120px}
+  .pbanner .pt b{color:var(--white); font-size:14px}
+  .pbanner .pt small{display:block; color:var(--muted); font-size:11px}
+  .pbanner button{background:var(--card); color:var(--fg); border:1px solid var(--line);
+    border-radius:9px; padding:8px 11px; font-family:inherit; font-size:12px; cursor:pointer}
+  .pbanner button.go{background:var(--fg); color:#04160a; font-weight:700; border-color:var(--fg)}
+  /* ---------- menu: profili + sistema + recenti ---------- */
+  .sm-prof{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:8px}
+  .sm-pcard{text-align:left; cursor:pointer; font-family:inherit; color:var(--white);
+    background:linear-gradient(180deg,#0e140e,#0a0d0a); border:1px solid var(--line);
+    border-radius:12px; padding:11px}
+  .sm-pcard:active{transform:scale(.97)}
+  .sm-pcard .h{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700}
+  .sm-pcard .h .e{font-size:18px}
+  .sm-pcard .d{color:var(--muted); font-size:10.5px; line-height:1.3; margin-top:5px}
+  .sm-pcard .c{color:var(--fg-dim); font-size:10.5px; margin-top:6px}
+  .sm-sys{display:flex; gap:8px; flex-wrap:wrap}
+  .sm-sys button{background:var(--card); color:var(--fg); border:1px solid var(--line);
+    border-radius:10px; padding:10px 12px; font-family:inherit; font-size:12.5px; cursor:pointer}
+  .sm-sys button:active{transform:scale(.95)}
+  .sm-rec{display:flex; flex-direction:column; gap:2px}
+  .sm-rec button{text-align:left; background:transparent; color:var(--white); border:0;
+    border-bottom:1px solid var(--line); padding:9px 4px; font-family:inherit; font-size:12.5px; cursor:pointer}
+  .sm-rec button small{color:var(--muted)}
   /* ---------- taskbar stile desktop ---------- */
   main{padding-bottom:78px}
   .taskbar{
@@ -268,8 +298,22 @@ const ICON = {
   dnsenum:"🧬", theharvester:"🌾", wpscan:"📰", gobuster:"🚪", dirb:"📁",
   commix:"🧨", hashcat:"⚡", hashid:"🏷️", crunch:"🧱", cewl:"📝",
   searchsploit:"🔍", enum4linux:"🗂️", medusa:"🐙", exiftool:"📷",
+  ffuf:"🌀", nuclei:"☢️", feroxbuster:"🦀", wapiti:"🐝", joomscan:"📰",
+  sslscan:"🔐", httrack:"🪞", dalfox:"🦊", weevely:"🐚", mitmproxy:"🎭",
+  naabu:"🎯", dmitry:"🕵️", nbtscan:"🪪", snmpwalk:"📟", onesixtyone:"📟",
+  socat:"🔌", ncat:"🐈", sipvicious:"☎️", recon_ng:"🛰️", shodan:"👁️",
+  holehe:"📧", sherlock:"🕵️", subfinder:"🌿", amass:"🗺️", spiderfoot:"🕷️",
+  metagoofil:"📑", ncrack:"🔨", patator:"💥", crowbar:"🔧", fcrackzip:"🗜️",
+  pdfcrack:"📕", ophcrack:"🪟", binwalk:"🔬", foremost:"🧷", scalpel:"🔪",
+  testdisk:"💽", sleuthkit:"🕵️", steghide:"🖼️", stegseek:"🔎", yara:"🧿",
+  clamav:"🦠", chkrootkit:"🔦", rkhunter:"🔦", lynis:"📋", bulk_extractor:"⛏️",
+  volatility3:"🧠", radare2:"🧩", gdb:"🐞", strace:"👣", ltrace:"👣",
+  jadx:"☕", apktool:"📦", binutils:"🔩", hexedit:"🔢", pev:"🪟", floss:"🧵",
+  routersploit:"📡", set:"🎣", impacket:"🪟", netexec:"🪟", evil_winrm:"👹",
+  bloodhound_py:"🐕", smbmap:"🗂️", beef_xss:"🐄", autorecon:"🤖", torsocks:"🧅",
 };
-const CAT_ICON = {Network:"🌐", Web:"🕸️", Exploitation:"🎯", Cracking:"🔓", Anonimato:"🧅", Sistema:"🖥️"};
+const CAT_ICON = {Network:"🌐", Web:"🕸️", Exploitation:"🎯", Cracking:"🔓",
+  Anonimato:"🧅", Sistema:"🖥️", Forensics:"🧪", Reverse:"🧩", Wireless:"📶"};
 // Dove gira il tool: Termux nativo (leggero/veloce) o Debian minimale in proot.
 const RUNTIME = {
   termux:`<span class="badge" title="pacchetto nativo Termux (leggero, veloce)">📦 Termux</span>`,
@@ -277,6 +321,8 @@ const RUNTIME = {
 };
 
 let ALL = {};          // categorie -> tool
+let PROFILES = [];     // profili (set di tool installabili insieme)
+let activeProfile = null; // profilo attivo che filtra la pagina
 let anonMode = false;  // instrada via Tor i tool compatibili
 let showCatalog = false; // mostra anche i tool "da installare" del catalogo
 const HKEY = "nexussec-history";
@@ -454,7 +500,9 @@ function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":
 function installHint(tool){
   const pkg=tool.pkg||tool.bin||tool.id;
   let body="Questo tool non risulta installato.\n\nPer installarlo, da Termux:\n\n";
-  if(tool.runtime==="termux"){
+  if(tool.pip){
+    body+="    pip install "+pkg+"\n";
+  } else if(tool.runtime==="termux"){
     body+="    pkg install "+pkg+"\n"+
           "    (se non lo trova:  pkg install root-repo && pkg install "+pkg+")\n";
   } else if(tool.repo==="kali"){
@@ -473,34 +521,88 @@ function installHint(tool){
   overlay.dataset.tool=tool.id;
   showOutput(tool.name, body);
 }
+function showReason(tool){
+  overlay.dataset.tool=tool.id;
+  showOutput(tool.name,
+    "⚠️  Non utilizzabile su questo telefono.\n\n"+(tool.reason||"")+"\n\n"+
+    "È elencato per completezza (nella distro NexusSec-OS su PC funziona). "+
+    "Sul telefono stock, senza root, non può girare.");
+}
 function toolCard(tool){
   const b=document.createElement("button"); b.className="tool"; b.dataset.name=(tool.name+" "+(tool.help||"")).toLowerCase();
   const interactive=tool.mode==="interactive";
   const native=tool.mode==="native";
-  const off=tool.installed===false;
-  if(off) b.classList.add("off");
-  const onion=(tool.anon_ok||tool.force_anon)?`<span class="badge" title="instradabile via Tor">🧅</span>`:"";
+  const broken=tool.works===false;
+  const off=!broken && tool.installed===false;
+  if(broken||off) b.classList.add("off");
+  const onion=(!broken&&(tool.anon_ok||tool.force_anon))?`<span class="badge" title="instradabile via Tor">🧅</span>`:"";
   const live=native?`<span class="badge" title="API esterna, gira anche senza proot">🌐 live</span>`:"";
-  const rt=RUNTIME[tool.runtime]||"";
-  const mainBadge=off?`<span class="badge off" title="tocca per l'istruzione di installazione">＋ da installare</span>`
-                     :`<span class="badge ${interactive?"term":""}">${interactive?"▮ terminale":"» run"}</span>`;
+  const rt=broken?"":(RUNTIME[tool.runtime]||"");
+  let mainBadge;
+  if(broken) mainBadge=`<span class="badge nope" title="tocca per sapere perché">❌ non su stock</span>`;
+  else if(off) mainBadge=`<span class="badge off" title="tocca per l'istruzione di installazione">＋ da installare</span>`;
+  else mainBadge=`<span class="badge ${interactive?"term":""}">${interactive?"▮ terminale":"» run"}</span>`;
   b.innerHTML=`<div class="top"><span class="emoji">${ICON[tool.id]||"▸"}</span>`
     +`<span class="nm">${escapeHtml(tool.name)}</span></div>`
     +`<span class="desc">${escapeHtml(tool.help||"")}</span>`
     +`<div style="display:flex;gap:6px;flex-wrap:wrap">${mainBadge}${rt}${live}${onion}</div>`;
-  b.onclick=()=> off ? installHint(tool) : (interactive?openTerminal(tool):runOneshot(tool));
+  b.onclick=()=> broken ? showReason(tool) : (off ? installHint(tool) : (interactive?openTerminal(tool):runOneshot(tool)));
   return b;
 }
 function visibleInCatalog(t){
   // i tool del catalogo NON installati si vedono solo col toggle 🧰 attivo
   return showCatalog || !(t.catalog && t.installed===false);
 }
+function activeProfileObj(){ return PROFILES.find(p=>p.key===activeProfile)||null; }
+function selectProfile(key){ activeProfile=key; render($("#search").value); window.scrollTo(0,0); }
+function clearProfile(){ activeProfile=null; render($("#search").value); }
+function profileBanner(prof){
+  const ids=new Set(prof.tools);
+  const all=Object.values(ALL).flat().filter(t=>ids.has(t.id));
+  const inst=all.filter(t=>t.installed!==false).length;
+  const el=document.createElement("div"); el.className="pbanner";
+  el.innerHTML=`<span class="pi">${prof.icon}</span>`
+    +`<span class="pt"><b>Profilo: ${escapeHtml(prof.name)}</b>`
+    +`<small>${escapeHtml(prof.desc)} · ${inst}/${all.length} installati</small></span>`;
+  const inb=document.createElement("button"); inb.className="go"; inb.textContent="⤓ Installa profilo";
+  inb.onclick=()=>installProfile(prof);
+  const cl=document.createElement("button"); cl.textContent="✕ mostra tutti";
+  cl.onclick=clearProfile;
+  el.appendChild(inb); el.appendChild(cl);
+  return el;
+}
+function installProfile(prof){
+  const ids=new Set(prof.tools);
+  const tools=Object.values(ALL).flat().filter(t=>ids.has(t.id) && t.installed===false && t.works!==false);
+  if(!tools.length){ overlay.dataset.tool=prof.key; showOutput("Profilo "+prof.name, "Tutti i tool di questo profilo risultano già installati. 🎉"); return; }
+  const g={termux:[],pip:[],debian:[],kali:[]};
+  tools.forEach(t=>{ const pkg=t.pkg||t.bin||t.id;
+    if(t.pip) g.pip.push(pkg);
+    else if(t.runtime==="termux") g.termux.push(pkg);
+    else if(t.repo==="kali") g.kali.push(pkg);
+    else g.debian.push(pkg);
+  });
+  let body="Installa il profilo "+prof.name+" — "+tools.length+" tool mancanti.\nDa Termux, esegui i blocchi che ti servono:\n";
+  if(g.termux.length) body+="\n# pacchetti nativi Termux\n  pkg install "+g.termux.join(" ")+"\n";
+  if(g.pip.length)    body+="\n# tool Python (pip)\n  pip install "+g.pip.join(" ")+"\n";
+  if(g.debian.length) body+="\n# nel Debian (proot)\n  proot-distro login debian -- apt install "+g.debian.join(" ")+"\n";
+  if(g.kali.length)   body+="\n# dal repo Kali (una volta sola: ENABLE_KALI_REPO=yes ./install.sh)\n  proot-distro login debian -- apt install "+g.kali.join(" ")+"\n";
+  body+="\nPoi tocca ↻ (menu ▤) per aggiornare l'elenco.";
+  overlay.dataset.tool=prof.key;
+  showOutput("Installa profilo · "+prof.name, body); $("#copyBtn").hidden=false;
+}
 function render(filter=""){
-  const app=$("#app"); app.innerHTML=""; filter=filter.trim().toLowerCase();
+  const app=$("#app"); app.innerHTML=""; filter=(filter||"").trim().toLowerCase();
+  const prof=activeProfileObj();
+  const inProf = prof ? new Set(prof.tools) : null;
+  if(prof) app.appendChild(profileBanner(prof));
   let shown=0;
   for(const [cat,tools] of Object.entries(ALL)){
-    const vis=tools.filter(t=>visibleInCatalog(t) &&
-      (!filter || (t.name+" "+(t.help||"")).toLowerCase().includes(filter)));
+    const vis=tools.filter(t=>{
+      if(inProf){ if(!inProf.has(t.id)) return false; }
+      else if(!visibleInCatalog(t)) return false;
+      return !filter || (t.name+" "+(t.help||"")).toLowerCase().includes(filter);
+    });
     if(!vis.length) continue;
     const h=document.createElement("h2");
     h.innerHTML=`<span class="ic">${CAT_ICON[cat]||"•"}</span>${escapeHtml(cat)} <span class="count">${vis.length}</span>`;
@@ -550,25 +652,61 @@ function renderTaskbarWins(){
   });
 }
 
-// menu Applicazioni: lancia i tool installati, raggruppati per categoria
+// menu = hub: PROFILI (naviga/installa per set) + SISTEMA + RECENTI.
+// Non ripete la griglia della pagina: quella resta l'elenco completo dei tool.
+function profileStats(p){
+  const ids=new Set(p.tools);
+  const all=Object.values(ALL).flat().filter(t=>ids.has(t.id));
+  return {all:all.length, inst:all.filter(t=>t.installed!==false).length};
+}
 function renderStartMenu(){
-  const body=$("#smBody"); body.innerHTML=""; let any=false;
-  for(const [cat,tools] of Object.entries(ALL)){
-    const inst=tools.filter(t=>t.installed!==false);
-    if(!inst.length) continue;
-    any=true;
-    const h=document.createElement("div"); h.className="sm-cat";
-    h.textContent=(CAT_ICON[cat]||"•")+"  "+cat; body.appendChild(h);
-    const g=document.createElement("div"); g.className="sm-grid";
-    inst.forEach(t=>{
-      const a=document.createElement("button"); a.className="sm-app";
-      a.innerHTML=`<span class="ico">${ICON[t.id]||"▸"}</span><span class="lb">${escapeHtml(t.name)}</span>`;
-      a.onclick=()=>{ closeStart(); (t.mode==="interactive")?openTerminal(t):runOneshot(t); };
-      g.appendChild(a);
+  const body=$("#smBody"); body.innerHTML="";
+  const cat=(txt)=>{ const h=document.createElement("div"); h.className="sm-cat"; h.textContent=txt; body.appendChild(h); };
+
+  // --- PROFILI ---
+  cat("PROFILI");
+  const pg=document.createElement("div"); pg.className="sm-prof";
+  if(!PROFILES.length){ pg.innerHTML='<div class="sm-empty">Profili non disponibili.</div>'; }
+  PROFILES.forEach(p=>{
+    const s=profileStats(p);
+    const c=document.createElement("button"); c.className="sm-pcard";
+    c.innerHTML=`<span class="h"><span class="e">${p.icon}</span>${escapeHtml(p.name)}</span>`
+      +`<span class="d">${escapeHtml(p.desc)}</span>`
+      +`<span class="c">${s.inst}/${s.all} installati</span>`;
+    c.onclick=()=>{ closeStart(); selectProfile(p.key); };
+    pg.appendChild(c);
+  });
+  body.appendChild(pg);
+
+  // --- SISTEMA ---
+  cat("SISTEMA");
+  const sys=document.createElement("div"); sys.className="sm-sys";
+  const mk=(label,fn)=>{ const b=document.createElement("button"); b.textContent=label; b.onclick=fn; sys.appendChild(b); };
+  mk("⌨️ Terminale",()=>{ closeStart(); const sh=findTool("shell"); if(sh) openTerminal(sh); });
+  mk(anonMode?"🧅 Tor: ON":"🧅 Tor: off",()=>{ setTor(!anonMode).then(renderStartMenu); });
+  mk(showCatalog?"🧰 Catalogo: ON":"🧰 Catalogo",()=>{ $("#catBtn").click(); renderStartMenu(); });
+  mk("↻ Aggiorna tool",async()=>{ await refreshTools(); renderStartMenu(); });
+  mk("🕘 Storico",()=>{ closeStart(); $("#histBtn").click(); });
+  if(activeProfile) mk("✕ Nessun profilo",()=>{ closeStart(); clearProfile(); });
+  body.appendChild(sys);
+
+  // --- RECENTI ---
+  const h=loadHistory().slice(0,5);
+  if(h.length){
+    cat("RECENTI");
+    const rec=document.createElement("div"); rec.className="sm-rec";
+    h.forEach(it=>{
+      const b=document.createElement("button");
+      b.innerHTML=`${ICON[it.tool]||"▸"} ${escapeHtml(it.name)} <small>${it.target?escapeHtml(it.target):""}</small>`;
+      b.onclick=()=>{ closeStart(); const t=findTool(it.tool); if(t){ (t.mode==="interactive")?openTerminal(t):runOneshot(t); } };
+      rec.appendChild(b);
     });
-    body.appendChild(g);
+    body.appendChild(rec);
   }
-  if(!any) body.innerHTML='<div class="sm-empty">Nessun tool installato ancora.<br>Lancia <b>./install.sh</b> in Termux.</div>';
+}
+async function refreshTools(){
+  try{ ALL=await (await fetch("/api/tools/refresh",{method:"POST"})).json(); render($("#search").value); toast("Elenco tool aggiornato"); }
+  catch{ toast("Aggiornamento non riuscito"); }
 }
 function openStart(){ renderStartMenu(); $("#startmenu").classList.add("open"); $("#scrim").classList.add("open"); }
 function closeStart(){ $("#startmenu").classList.remove("open"); $("#scrim").classList.remove("open"); }
@@ -577,10 +715,7 @@ $("#smClose").onclick=closeStart;
 $("#scrim").onclick=closeStart;
 $("#tbTerm").onclick=()=>{ const sh=findTool("shell"); if(sh) openTerminal(sh); else toast("Shell non disponibile"); };
 $("#tbTor").onclick=()=>setTor(!anonMode);
-$("#smRefresh").onclick=async()=>{
-  try{ ALL=await (await fetch("/api/tools/refresh",{method:"POST"})).json(); render($("#search").value); renderStartMenu(); toast("Elenco tool aggiornato"); }
-  catch{ toast("Aggiornamento non riuscito"); }
-};
+$("#smRefresh").onclick=async()=>{ await refreshTools(); renderStartMenu(); };
 
 // orologio della tray
 function tickClock(){ const d=new Date();
@@ -590,10 +725,11 @@ tickClock(); setInterval(tickClock, 15000);
 async function load(){
   try{
     ALL=await (await fetch("/api/tools")).json();
+    try{ PROFILES=await (await fetch("/api/profiles")).json(); }catch{ PROFILES=[]; }
     const all=Object.values(ALL).flat();
     const ready=all.filter(t=>t.installed!==false).length;
     const catN=all.filter(t=>t.catalog).length;
-    $("#status").textContent=ready+" tool installati · "+catN+" nel catalogo (🧰) · ▤ per il menu";
+    $("#status").textContent=ready+" tool installati · "+catN+" nel catalogo · "+PROFILES.length+" profili (▤)";
     render();
     syncTor();
   }catch(e){

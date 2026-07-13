@@ -310,6 +310,316 @@ BIN = {
 }
 
 
+# ========================================================================= #
+# CATALOGO ESTESO (portato dai profili della distro NexusSec-OS).
+# Costruito da chiamate compatte per non ripetere la struttura del dict.
+#   c(...) = tool che funziona su telefono (interattivo, terminale ttyd).
+#   n(...) = tool mostrato ma NON funzionante su stock (root/monitor mode/GUI).
+# ========================================================================= #
+
+def _c(tid, name, cat, runtime="proot", *, repo=None, pkg=None, pip=False,
+       binn=None, help="", anon=False):
+    """Registra un tool del catalogo (funzionante) in TOOLS + BIN."""
+    b = binn or tid
+    entry = {
+        "name": name, "category": cat, "mode": "interactive", "runtime": runtime,
+        "target": None, "catalog": True, "help": help,
+        "cmd": ["bash", "-lc",
+                f"command -v {b} >/dev/null 2>&1 && {b} --help 2>&1 | head -15; echo; exec bash"],
+    }
+    if repo:
+        entry["repo"] = repo
+    if pkg:
+        entry["pkg"] = pkg
+    if pip:
+        entry["pip"] = True
+    if anon:
+        entry["anon_ok"] = True
+    TOOLS[tid] = entry
+    BIN[tid] = b
+
+
+def _n(tid, name, cat, *, reason, help=""):
+    """Registra un tool NON usabile su telefono stock (solo informativo)."""
+    TOOLS[tid] = {
+        "name": name, "category": cat, "mode": "oneshot", "runtime": "proot",
+        "target": None, "catalog": True, "works": False, "reason": reason,
+        "help": help, "cmd": [],
+    }
+
+
+# --- Web ---------------------------------------------------------------------
+_c("ffuf", "Ffuf · fuzzing web", "Web", "termux",
+   help="Tipo: fuzzing web. Brute force veloce di path e parametri.")
+_c("nuclei", "Nuclei · scanner vuln", "Web", "termux",
+   help="Tipo: scanner vuln. Scansione basata su template della community.")
+_c("feroxbuster", "Feroxbuster · content discovery", "Web", repo="kali",
+   help="Tipo: content discovery. Brute force ricorsivo di directory.")
+_c("wapiti", "Wapiti · scanner web", "Web", repo="kali",
+   help="Tipo: scanner vuln web. Trova XSS/SQLi/ecc. via crawling.")
+_c("joomscan", "JoomScan · Joomla", "Web", repo="kali",
+   help="Tipo: scanner CMS. Sicurezza di siti Joomla.")
+_c("sslscan", "SSLScan · TLS", "Web", "termux",
+   help="Tipo: TLS. Cifrari e certificati SSL/TLS di un server.")
+_c("httrack", "HTTrack · mirror sito", "Web", "termux",
+   help="Tipo: mirror. Scarica un intero sito in locale.")
+_c("dalfox", "Dalfox · XSS", "Web", repo="kali",
+   help="Tipo: XSS. Scanner automatico di cross-site scripting.")
+_c("weevely", "Weevely · web shell", "Web", repo="kali",
+   help="Tipo: web shell. Genera e gestisce web shell PHP offuscate.")
+_c("mitmproxy", "mitmproxy · proxy MITM", "Web", "termux",
+   help="Tipo: proxy MITM. Intercetta/modifica HTTP(S) come proxy locale.")
+
+# --- Network / recon ---------------------------------------------------------
+_c("naabu", "Naabu · port scan", "Network", repo="kali",
+   help="Tipo: port scan. Scanner di porte veloce (connect scan).")
+_c("dmitry", "DMitry · recon host", "Network", repo="kali",
+   help="Tipo: recon. Info su un host: whois, sottodomini, porte.")
+_c("nbtscan", "NBTscan · NetBIOS", "Network", repo="kali",
+   help="Tipo: enum. Scansione dei nomi NetBIOS in una rete.")
+_c("snmpwalk", "snmpwalk · SNMP", "Network", pkg="snmp", binn="snmpwalk",
+   help="Tipo: enum SNMP. Interroga i MIB di un dispositivo via SNMP.")
+_c("onesixtyone", "onesixtyone · SNMP", "Network", repo="kali",
+   help="Tipo: enum SNMP. Scanner di community string SNMP.")
+_c("socat", "socat · relay", "Network", "termux",
+   help="Tipo: networking. Relay e tunnel tra socket, file e processi.")
+_c("ncat", "Ncat · netcat", "Network", "termux", pkg="nmap", binn="ncat",
+   help="Tipo: networking. Netcat moderno (connessioni TCP/UDP).")
+_c("sipvicious", "SIPVicious · VoIP", "Network", repo="kali", binn="svmap",
+   help="Tipo: VoIP. Scanner di sistemi SIP/VoIP.")
+
+# --- OSINT -------------------------------------------------------------------
+_c("recon_ng", "Recon-ng · framework OSINT", "Network", repo="kali", binn="recon-ng",
+   help="Tipo: OSINT. Framework modulare di ricognizione.")
+_c("shodan", "Shodan CLI", "Network", "termux", pip=True,
+   help="Tipo: OSINT. CLI di Shodan (richiede API key).")
+_c("holehe", "Holehe · email OSINT", "Network", "termux", pip=True,
+   help="Tipo: OSINT. Verifica se un'email e' registrata su vari siti.")
+_c("sherlock", "Sherlock · username OSINT", "Network", "termux", pip=True,
+   help="Tipo: OSINT. Cerca uno username sui social network.")
+_c("subfinder", "Subfinder · sottodomini", "Network", repo="kali",
+   help="Tipo: OSINT. Enumerazione passiva di sottodomini.")
+_c("amass", "Amass · superficie d'attacco", "Network", repo="kali",
+   help="Tipo: OSINT. Mappa i sottodomini e la superficie d'attacco.")
+_c("spiderfoot", "SpiderFoot · OSINT auto", "Network", repo="kali",
+   help="Tipo: OSINT. Automazione OSINT con interfaccia web locale.")
+_c("metagoofil", "Metagoofil · metadati doc", "Network", repo="kali",
+   help="Tipo: OSINT. Estrae metadati da documenti pubblici.")
+
+# --- Cracking ----------------------------------------------------------------
+_c("ncrack", "Ncrack · brute rete", "Cracking", repo="kali",
+   help="Tipo: brute force. Cracking di autenticazioni di rete.")
+_c("patator", "Patator · brute multiuso", "Cracking", repo="kali",
+   help="Tipo: brute force. Brute forcer modulare multi-protocollo.")
+_c("crowbar", "Crowbar · brute", "Cracking", repo="kali",
+   help="Tipo: brute force. Brute force per RDP/SSH/OpenVPN.")
+_c("fcrackzip", "fcrackzip · ZIP", "Cracking", repo="kali",
+   help="Tipo: cracking. Password di archivi ZIP.")
+_c("pdfcrack", "pdfcrack · PDF", "Cracking", repo="kali",
+   help="Tipo: cracking. Password di file PDF.")
+_c("ophcrack", "Ophcrack · Windows", "Cracking", repo="kali",
+   pkg="ophcrack-cli", binn="ophcrack",
+   help="Tipo: cracking. Password Windows via rainbow table.")
+
+# --- Forensics ---------------------------------------------------------------
+_c("binwalk", "Binwalk · firmware", "Forensics", "termux",
+   help="Tipo: forense. Analizza ed estrae contenuti da firmware/binari.")
+_c("foremost", "Foremost · carving", "Forensics", repo="kali",
+   help="Tipo: forense. Recupera file per carving.")
+_c("scalpel", "Scalpel · carving", "Forensics", repo="kali",
+   help="Tipo: forense. File carving configurabile.")
+_c("testdisk", "TestDisk · recupero", "Forensics", "termux",
+   help="Tipo: forense. Recupera partizioni e file (da immagini).")
+_c("sleuthkit", "Sleuth Kit · filesystem", "Forensics", pkg="sleuthkit", binn="fls",
+   help="Tipo: forense. Analisi di filesystem (The Sleuth Kit).")
+_c("steghide", "Steghide · stego", "Forensics", pkg="steghide",
+   help="Tipo: stego. Nasconde/estrae dati in immagini e audio.")
+_c("stegseek", "StegSeek · crack stego", "Forensics", repo="kali",
+   help="Tipo: stego. Cracker velocissimo di steghide.")
+_c("yara", "YARA · regole malware", "Forensics", "termux",
+   help="Tipo: malware. Pattern matching su file con regole YARA.")
+_c("clamav", "ClamAV · antivirus", "Forensics", pkg="clamav", binn="clamscan",
+   help="Tipo: antivirus. Scansione malware dei file.")
+_c("chkrootkit", "chkrootkit", "Forensics", pkg="chkrootkit",
+   help="Tipo: hardening. Cerca rootkit noti nel sistema.")
+_c("rkhunter", "Rootkit Hunter", "Forensics", pkg="rkhunter",
+   help="Tipo: hardening. Rileva rootkit e anomalie.")
+_c("lynis", "Lynis · audit", "Forensics", "termux",
+   help="Tipo: audit. Audit di sicurezza e hardening del sistema.")
+_c("bulk_extractor", "Bulk Extractor", "Forensics", repo="kali", binn="bulk_extractor",
+   help="Tipo: forense. Estrae email/URL/carte da immagini disco.")
+_c("volatility3", "Volatility 3 · memoria", "Forensics", "termux", pip=True, binn="vol",
+   help="Tipo: forense. Analisi di dump di memoria (RAM).")
+
+# --- Reverse -----------------------------------------------------------------
+_c("radare2", "Radare2 · RE", "Reverse", "termux", binn="r2",
+   help="Tipo: reverse. Framework di reverse engineering.")
+_c("gdb", "GDB · debugger", "Reverse", "termux",
+   help="Tipo: debug. Debugger GNU.")
+_c("strace", "strace · syscall", "Reverse", "termux",
+   help="Tipo: debug. Traccia le system call di un processo.")
+_c("ltrace", "ltrace · librerie", "Reverse", pkg="ltrace",
+   help="Tipo: debug. Traccia le chiamate a libreria.")
+_c("jadx", "Jadx · decompila APK", "Reverse", "termux",
+   help="Tipo: reverse. Decompila APK/DEX in codice Java.")
+_c("apktool", "Apktool · APK", "Reverse", "termux",
+   help="Tipo: reverse. Decompila e ricostruisce risorse di un APK.")
+_c("binutils", "Binutils · objdump", "Reverse", "termux", binn="objdump",
+   help="Tipo: reverse. objdump/readelf/nm e altri.")
+_c("hexedit", "Hexedit", "Reverse", "termux",
+   help="Tipo: utility. Editor esadecimale da terminale.")
+_c("pev", "pev · analisi PE", "Reverse", pkg="pev",
+   help="Tipo: reverse. Analisi di eseguibili PE (Windows).")
+_c("floss", "FLARE FLOSS · stringhe", "Reverse", "termux", pip=True, pkg="flare-floss", binn="floss",
+   help="Tipo: reverse. Estrae stringhe offuscate da malware.")
+
+# --- Exploitation / Active Directory ----------------------------------------
+_c("routersploit", "RouterSploit", "Exploitation", repo="kali",
+   help="Tipo: exploit. Framework di exploit per router e IoT.")
+_c("set", "SET · social eng", "Exploitation", repo="kali", pkg="set", binn="setoolkit",
+   help="Tipo: social engineering. Social-Engineer Toolkit.")
+_c("impacket", "Impacket", "Exploitation", repo="kali", pkg="impacket-scripts",
+   binn="impacket-smbserver",
+   help="Tipo: AD. Script per protocolli Windows/Active Directory.")
+_c("netexec", "NetExec (nxc)", "Exploitation", "termux", pip=True, binn="nxc",
+   help="Tipo: AD. Esecuzione/enum su reti Windows (ex-CrackMapExec).")
+_c("evil_winrm", "Evil-WinRM", "Exploitation", repo="kali", binn="evil-winrm",
+   help="Tipo: post-exploit. Shell WinRM verso host Windows.")
+_c("bloodhound_py", "BloodHound.py", "Exploitation", "termux", pip=True,
+   pkg="bloodhound", binn="bloodhound-python",
+   help="Tipo: AD. Raccoglie dati di Active Directory per BloodHound.")
+_c("smbmap", "SMBMap", "Exploitation", "termux", pip=True,
+   help="Tipo: enum SMB. Enumera share e permessi SMB.")
+_c("beef_xss", "BeEF · browser exploit", "Exploitation", repo="kali", binn="beef-xss",
+   help="Tipo: exploit web. Browser Exploitation Framework (server locale).")
+_c("autorecon", "AutoRecon", "Exploitation", "termux", pip=True,
+   help="Tipo: recon. Ricognizione automatica multi-tool.")
+
+# --- Anonimato ---------------------------------------------------------------
+_c("torsocks", "torsocks", "Anonimato", "termux",
+   help="Tipo: anonimato. Instrada un singolo comando via Tor.")
+
+# --- NON usabili su telefono stock (informativi) ----------------------------
+_n("kismet", "Kismet", "Wireless",
+   reason="Sniffing Wi-Fi: richiede monitor mode e root, impossibile su stock.",
+   help="Tipo: wireless. Sniffer/IDS Wi-Fi.")
+_n("reaver", "Reaver", "Wireless",
+   reason="Attacco WPS: richiede monitor mode/injection e root.",
+   help="Tipo: wireless. Attacco WPS su router.")
+_n("wifite", "Wifite", "Wireless",
+   reason="Automazione attacchi Wi-Fi: richiede monitor mode e root.",
+   help="Tipo: wireless. Attacchi Wi-Fi automatizzati.")
+_n("wifiphisher", "Wifiphisher", "Wireless",
+   reason="Rogue AP/phishing Wi-Fi: richiede AP/monitor mode e root.",
+   help="Tipo: wireless. Access point malevolo.")
+_n("mdk4", "MDK4", "Wireless",
+   reason="Attacchi 802.11: richiedono injection e root.",
+   help="Tipo: wireless. Stress/attacco su reti Wi-Fi.")
+_n("cowpatty", "coWPAtty", "Wireless",
+   reason="Serve un handshake catturato; la cattura richiede monitor mode/root.",
+   help="Tipo: wireless. Crack WPA-PSK.")
+_n("pixiewps", "Pixiewps", "Wireless",
+   reason="Attacco Pixie Dust: dipende dalla cattura WPS (monitor mode/root).",
+   help="Tipo: wireless. Attacco Pixie Dust WPS.")
+_n("macchanger", "MAC Changer", "Wireless",
+   reason="Cambiare il MAC dell'interfaccia richiede root.",
+   help="Tipo: wireless. Cambia l'indirizzo MAC.")
+_n("bettercap", "Bettercap", "Network",
+   reason="MITM/sniffing su rete: richiede raw socket e root.",
+   help="Tipo: MITM. Attacchi man-in-the-middle.")
+_n("ettercap", "Ettercap", "Network",
+   reason="MITM/ARP poisoning: richiede raw socket e root.",
+   help="Tipo: MITM. Man-in-the-middle su LAN.")
+_n("responder", "Responder", "Network",
+   reason="Poisoning LLMNR/NBT-NS: richiede bind su porte basse e raw, root.",
+   help="Tipo: MITM. Cattura credenziali su LAN.")
+_n("tcpdump", "tcpdump", "Network",
+   reason="La cattura di pacchetti richiede root (puo' solo leggere file .pcap).",
+   help="Tipo: sniffer. Cattura pacchetti di rete.")
+_n("tshark", "TShark", "Network",
+   reason="La cattura richiede root (puo' leggere .pcap gia' salvati).",
+   help="Tipo: sniffer. Wireshark da terminale.")
+_n("masscan", "Masscan", "Network",
+   reason="Usa raw socket per la velocita': richiede root.",
+   help="Tipo: port scan. Scanner di porte ultrarapido.")
+_n("hping3", "hping3", "Network",
+   reason="Crea pacchetti grezzi: richiede root.",
+   help="Tipo: networking. Generatore di pacchetti custom.")
+_n("arpscan", "arp-scan", "Network",
+   reason="Scansione ARP: richiede raw socket e root.",
+   help="Tipo: enum. Scopre host via ARP sulla LAN.")
+_n("netdiscover", "Netdiscover", "Network",
+   reason="Sniffing ARP passivo: richiede monitor/raw e root.",
+   help="Tipo: enum. Scopre host via ARP.")
+_n("wireshark", "Wireshark (GUI)", "Reverse",
+   reason="Interfaccia grafica: serve un desktop X11 (usa TShark da CLI).",
+   help="Tipo: sniffer GUI. Analisi di traffico.")
+_n("burpsuite", "Burp Suite (GUI)", "Web",
+   reason="Interfaccia grafica Java: serve un desktop X11.",
+   help="Tipo: proxy web GUI. Test di web app.")
+_n("zaproxy", "OWASP ZAP (GUI)", "Web",
+   reason="Interfaccia grafica Java: serve un desktop X11.",
+   help="Tipo: scanner web GUI.")
+_n("ghidra", "Ghidra (GUI)", "Reverse",
+   reason="GUI Java pesante: serve desktop X11 e molta RAM.",
+   help="Tipo: reverse GUI. Disassembler/decompiler.")
+_n("autopsy", "Autopsy (GUI)", "Forensics",
+   reason="Interfaccia grafica/web pesante: serve un desktop.",
+   help="Tipo: forense GUI. Analisi disco.")
+
+
+# ========================================================================= #
+# PROFILI (come sec-profile-* della distro): set di tool installabili insieme.
+# Elencano solo tool FUNZIONANTI su telefono.
+# ========================================================================= #
+PROFILES: dict[str, dict] = {
+    "pentest": {
+        "name": "Pen Testing", "icon": "🎯",
+        "desc": "Scansione, exploit, brute force, Active Directory.",
+        "tools": ["nmap_quick", "nmap_ping", "dig", "sqlmap", "hydra", "john",
+                  "hashcat", "metasploit", "searchsploit", "medusa", "ncrack",
+                  "patator", "crowbar", "enum4linux", "smbmap", "impacket",
+                  "netexec", "evil_winrm", "bloodhound_py", "routersploit", "set",
+                  "naabu", "socat", "ncat", "sipvicious", "nuclei"],
+    },
+    "web": {
+        "name": "Web", "icon": "🕸️",
+        "desc": "Sicurezza di siti e applicazioni web.",
+        "tools": ["whatweb", "nikto", "wafw00f", "wfuzz", "sqlmap", "gobuster",
+                  "dirb", "ffuf", "nuclei", "feroxbuster", "wapiti", "joomscan",
+                  "sslscan", "dalfox", "wpscan", "commix", "weevely", "mitmproxy",
+                  "cewl", "httrack", "beef_xss"],
+    },
+    "osint": {
+        "name": "OSINT", "icon": "🔎",
+        "desc": "Ricognizione da fonti pubbliche.",
+        "tools": ["whois", "rdap", "dig", "dnsrecon", "dnsenum", "theharvester",
+                  "recon_ng", "shodan", "holehe", "sherlock", "subfinder", "amass",
+                  "spiderfoot", "metagoofil", "exiftool", "dmitry"],
+    },
+    "forensics": {
+        "name": "Forensics", "icon": "🧪",
+        "desc": "Analisi forense, steganografia, malware.",
+        "tools": ["exiftool", "binwalk", "foremost", "scalpel", "testdisk",
+                  "sleuthkit", "steghide", "stegseek", "yara", "clamav",
+                  "chkrootkit", "rkhunter", "lynis", "bulk_extractor",
+                  "volatility3", "fcrackzip", "pdfcrack", "hashid", "ophcrack"],
+    },
+    "reverse": {
+        "name": "Reverse", "icon": "🧩",
+        "desc": "Reverse engineering, debug, analisi APK.",
+        "tools": ["radare2", "gdb", "strace", "ltrace", "jadx", "apktool",
+                  "binutils", "hexedit", "pev", "floss"],
+    },
+}
+
+
+def profiles_list() -> list[dict]:
+    """Elenco dei profili per la UI."""
+    return [{"key": k, "name": v["name"], "icon": v["icon"],
+             "desc": v["desc"], "tools": v["tools"]} for k, v in PROFILES.items()]
+
+
 def detection_targets() -> tuple[dict, dict]:
     """(termux_bins, proot_bins): {tool_id: binario} da verificare per runtime.
 
@@ -351,6 +661,9 @@ def tools_by_category() -> dict[str, list]:
              "pkg": t.get("pkg"),              # pacchetto da installare (se != bin)
              "repo": t.get("repo"),            # "kali" se serve il repo Kali nel Debian
              "catalog": t.get("catalog", False),   # tool extra, mostrato su richiesta
+             "pip": t.get("pip", False),            # installabile via pip
+             "works": t.get("works", True),         # False = non usabile su stock
+             "reason": t.get("reason"),             # perche' non funziona (se works False)
              "target": t["target"], "help": t.get("help", ""),
              "anon_ok": t.get("anon_ok", False), "force_anon": t.get("force_anon", False)}
         )
