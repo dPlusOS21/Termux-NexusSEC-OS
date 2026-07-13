@@ -66,6 +66,18 @@ TOOLS: dict[str, dict] = {
         "cmd": [],   # nativo: nessun comando shell, il server fa una richiesta HTTPS
         "help": "Dati di un dominio o IP via RDAP (API pubblica). Non richiede proot: funziona subito.",
     },
+    "dig": {
+        "name": "Dig · lookup DNS",
+        "category": "Network", "mode": "oneshot", "runtime": "termux", "target": "host",
+        "cmd": ["dig", "+noall", "+answer", "+nocmd"],
+        "help": "Record DNS (A) di un dominio. Nativo Termux (dnsutils).",
+    },
+    "dnsrecon": {
+        "name": "DNSRecon · enumerazione DNS",
+        "category": "Network", "mode": "oneshot", "runtime": "proot", "target": "host",
+        "cmd": ["dnsrecon", "-d"],
+        "help": "Enumera record e prova zone transfer di un dominio (via Debian).",
+    },
     # --- Web ---------------------------------------------------------------
     "whatweb": {
         "name": "WhatWeb · fingerprint",
@@ -79,11 +91,24 @@ TOOLS: dict[str, dict] = {
         "cmd": ["nikto", "-nointeractive", "-h"], "anon_ok": True,
         "help": "Vulnerabilita' note di un web server (es. https://esempio.it)",
     },
+    "wafw00f": {
+        "name": "wafw00f · rileva WAF",
+        "category": "Web", "mode": "oneshot", "runtime": "proot", "target": "url",
+        "cmd": ["wafw00f"], "anon_ok": True,
+        "help": "Rileva il Web Application Firewall davanti a un sito (via Debian).",
+    },
     "sqlmap": {
         "name": "sqlmap (interattivo)",
         "category": "Web", "mode": "interactive", "runtime": "termux", "target": None,
         "cmd": ["bash", "-lc", "sqlmap --wizard || bash"],
         "help": "SQL injection; parte in modalita' wizard",
+    },
+    "wfuzz": {
+        "name": "Wfuzz · fuzzing web (interattivo)",
+        "category": "Web", "mode": "interactive", "runtime": "proot", "target": None,
+        "cmd": ["bash", "-lc", "echo 'Esempio: wfuzz -w wordlist.txt https://sito/FUZZ'; "
+                               "echo 'FUZZ = punto da fuzzare, -w = wordlist'; bash"],
+        "help": "Fuzzing di parametri/percorsi web con wordlist (via Debian).",
     },
     # --- Exploitation ------------------------------------------------------
     "metasploit": {
@@ -162,6 +187,34 @@ def inner_command(tool_id: str, target: str | None, anon: bool) -> list[str]:
     return cmd
 
 
+# Binario da verificare per sapere se un tool e' realmente installato.
+# I tool "native" non hanno binario: sono sempre disponibili.
+BIN = {
+    "nmap_quick": "nmap", "nmap_ping": "nmap", "whois": "whois", "dig": "dig",
+    "whatweb": "whatweb", "nikto": "nikto", "dnsrecon": "dnsrecon", "wafw00f": "wafw00f",
+    "sqlmap": "sqlmap", "wfuzz": "wfuzz", "metasploit": "msfconsole", "hydra": "hydra",
+    "aircrack": "aircrack-ng", "john": "john", "tor_ip": "curl",
+    "shell_anon": "proxychains4", "shell": "bash",
+}
+
+
+def detection_targets() -> tuple[dict, dict]:
+    """(termux_bins, proot_bins): {tool_id: binario} da verificare per runtime.
+
+    Esclude i tool "native" (sempre disponibili). Usato dal server per marcare
+    quali tool sono installati, cosi' la UI mostra un pulsante attivo per ognuno.
+    """
+    tb, pb = {}, {}
+    for tid, t in TOOLS.items():
+        if t.get("mode") == "native":
+            continue
+        b = BIN.get(tid)
+        if not b:
+            continue
+        (tb if t.get("runtime") == "termux" else pb)[tid] = b
+    return tb, pb
+
+
 def exec_prefix(tool_id: str) -> list[str]:
     """Prefisso di esecuzione in base al runtime del tool.
 
@@ -182,6 +235,7 @@ def tools_by_category() -> dict[str, list]:
         out.setdefault(t["category"], []).append(
             {"id": tid, "name": t["name"], "mode": t["mode"],
              "runtime": t.get("runtime"),      # "termux" | "proot" | None (native)
+             "bin": BIN.get(tid),              # binario da installare (per la UI)
              "target": t["target"], "help": t.get("help", ""),
              "anon_ok": t.get("anon_ok", False), "force_anon": t.get("force_anon", False)}
         )

@@ -34,7 +34,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from native import run_native
-from tools import TOOLS, TOR_SOCKS_PORT, exec_prefix, inner_command, tools_by_category, validate_target
+from tools import (PROOT, TOOLS, TOR_SOCKS_PORT, detection_targets, exec_prefix,
+                  inner_command, tools_by_category, validate_target)
 
 # --------------------------------------------------------------------------- #
 # Configurazione
@@ -125,10 +126,63 @@ def tor_stop():
     return {"up": tor_is_up()}
 
 
+# --------------------------------------------------------------------------- #
+# Rilevamento dei tool installati (per mostrare un pulsante attivo per ognuno)
+# --------------------------------------------------------------------------- #
+
+_INSTALLED: dict = {"t": 0.0, "ids": None}
+INSTALL_TTL = 20.0     # secondi di cache: dopo un'installazione compare entro TTL
+
+
+def installed_ids() -> set:
+    """Insieme dei tool_id realmente installati (con cache breve)."""
+    now = time.time()
+    if _INSTALLED["ids"] is not None and now - _INSTALLED["t"] < INSTALL_TTL:
+        return _INSTALLED["ids"]
+
+    ids = {tid for tid, t in TOOLS.items() if t.get("mode") == "native"}
+    termux_bins, proot_bins = detection_targets()
+
+    for tid, b in termux_bins.items():
+        if shutil.which(b):
+            ids.add(tid)
+
+    # Un'unica invocazione di proot per controllare tutti i binari del Debian.
+    if proot_bins and shutil.which("proot-distro"):
+        wanted = sorted(set(proot_bins.values()))
+        script = "for b in " + " ".join(wanted) + \
+                 '; do command -v "$b" >/dev/null 2>&1 && echo "$b"; done'
+        try:
+            r = subprocess.run(list(PROOT) + ["bash", "-lc", script],
+                               capture_output=True, text=True, timeout=25)
+            found = set(r.stdout.split())
+            for tid, b in proot_bins.items():
+                if b in found:
+                    ids.add(tid)
+        except (subprocess.SubprocessError, OSError):
+            pass
+
+    _INSTALLED["ids"] = ids
+    _INSTALLED["t"] = now
+    return ids
+
+
 @app.get("/api/tools")
 def list_tools():
-    """Elenco dei tool per popolare la UI, raggruppati per categoria."""
-    return tools_by_category()
+    """Elenco dei tool per la UI, con flag 'installed' per ciascuno."""
+    data = tools_by_category()
+    inst = installed_ids()
+    for tools in data.values():
+        for t in tools:
+            t["installed"] = t["id"] in inst
+    return data
+
+
+@app.post("/api/tools/refresh")
+def refresh_tools():
+    """Forza un nuovo rilevamento (utile subito dopo aver installato un tool)."""
+    _INSTALLED["ids"] = None
+    return list_tools()
 
 
 @app.post("/api/run")

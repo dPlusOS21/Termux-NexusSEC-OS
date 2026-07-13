@@ -47,8 +47,8 @@ pkg update -y && pkg upgrade -y
 log "Installo i pacchetti base (proot-distro, python, ttyd, git)..."
 pkg install -y proot-distro python ttyd git
 
-log "Installo i tool nativi di rete/anonimato (nmap, tor, proxychains, whois)..."
-pkg install -y nmap tor proxychains-ng whois curl
+log "Installo i tool nativi di rete/anonimato (nmap, tor, proxychains, whois, dig)..."
+pkg install -y nmap tor proxychains-ng whois curl dnsutils
 
 # --- 2. Tool Termux "extra" (root-repo: best-effort) ------------------------
 log "Abilito root-repo e installo i cracker/scanner nativi..."
@@ -98,6 +98,17 @@ log "Installo whatweb + nikto (Ruby/Perl, non nativi in Termux)..."
 # proxychains4 anche dentro Debian: permette l'anonimato per whatweb/nikto.
 proot-distro login "$DISTRO" -- apt-get install -y --no-install-recommends \
     whatweb nikto proxychains4 ca-certificates curl
+
+# Tool Debian "extra" (best-effort: se un pacchetto non c'e', avvisa e prosegue).
+log "Installo i tool Debian extra (dnsrecon, wafw00f, wfuzz)..."
+for t in dnsrecon wafw00f wfuzz; do
+    if proot-distro login "$DISTRO" -- apt-get install -y --no-install-recommends "$t" >/dev/null 2>&1; then
+        log "  ok: $t"
+    else
+        warn "  non installato: $t (non nei repo Debian di questa versione)"
+        MISSING="${MISSING:-} $t"
+    fi
+done
 
 log "Configuro proxychains dentro Debian..."
 proot-distro login "$DISTRO" -- bash -c 'cat > /etc/proxychains4.conf <<EOF

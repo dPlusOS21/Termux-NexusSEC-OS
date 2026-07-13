@@ -108,11 +108,75 @@
   .hist-item .hs{color:var(--muted); font-size:11px; margin-top:3px; display:flex; gap:12px; flex-wrap:wrap}
   .rc-ok{color:var(--fg-dim)} .rc-err{color:var(--red)}
   /* ---------- toast ---------- */
-  #toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
+  #toast{position:fixed; left:50%; bottom:74px; transform:translateX(-50%) translateY(20px);
     background:var(--panel); border:1px solid var(--fg-dim); color:var(--white);
     padding:10px 16px; border-radius:24px; font-size:13px; opacity:0; pointer-events:none;
-    transition:.25s; z-index:40}
+    transition:.25s; z-index:60}
   #toast.show{opacity:1; transform:translateX(-50%) translateY(0)}
+  /* ---------- tool non installato ---------- */
+  .tool.off{opacity:.45; filter:grayscale(.4)}
+  .tool.off:hover{border-color:var(--line); box-shadow:none}
+  .tool .badge.off{color:var(--amber); border-color:#4a3a12}
+  /* ---------- taskbar stile desktop ---------- */
+  main{padding-bottom:78px}
+  .taskbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:45; height:56px;
+    display:flex; align-items:center; gap:8px; padding:0 10px;
+    padding-bottom:env(safe-area-inset-bottom,0);
+    background:rgba(6,10,7,.94); backdrop-filter:blur(10px);
+    border-top:1px solid var(--line);
+  }
+  .tb-start{
+    display:flex; align-items:center; gap:8px; cursor:pointer; font-family:inherit;
+    background:linear-gradient(180deg,#123020,#0b1c12); color:var(--white);
+    border:1px solid var(--fg-dim); border-radius:11px; padding:9px 14px; font-size:13px; font-weight:700;
+  }
+  .tb-start:active{transform:scale(.96)}
+  .tb-start .dot{width:8px; height:8px; border-radius:50%; background:var(--fg); box-shadow:0 0 8px var(--fg)}
+  .tb-btn{
+    background:var(--card); color:var(--fg); border:1px solid var(--line);
+    border-radius:11px; padding:9px 11px; font-family:inherit; font-size:15px; cursor:pointer; line-height:1;
+  }
+  .tb-btn:active{transform:scale(.94)}
+  .tb-open{flex:1; display:flex; gap:6px; overflow-x:auto; scrollbar-width:none}
+  .tb-open::-webkit-scrollbar{display:none}
+  .tb-win{
+    flex:0 0 auto; display:flex; align-items:center; gap:6px; cursor:pointer; max-width:150px;
+    background:var(--card); border:1px solid var(--line); border-radius:10px;
+    padding:7px 10px; font-size:12px; color:var(--white);
+  }
+  .tb-win .x{color:var(--muted); font-size:13px}
+  .tb-win .nm{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .tray{display:flex; align-items:center; gap:10px; padding-left:4px}
+  .tray .tdot{width:9px; height:9px; border-radius:50%; background:var(--muted)}
+  .tray .tdot.on{background:var(--fg); box-shadow:0 0 8px var(--fg)}
+  .clock{font-size:12px; color:var(--fg-dim); font-variant-numeric:tabular-nums; min-width:42px; text-align:right}
+  /* ---------- menu Applicazioni (bottom sheet) ---------- */
+  .startmenu{
+    position:fixed; left:0; right:0; bottom:0; z-index:50;
+    transform:translateY(110%); transition:transform .22s ease;
+    background:rgba(7,11,8,.98); backdrop-filter:blur(12px);
+    border-top:1px solid var(--fg-dim); border-radius:18px 18px 0 0;
+    max-height:76vh; display:flex; flex-direction:column;
+    padding-bottom:calc(64px + env(safe-area-inset-bottom,0));
+  }
+  .startmenu.open{transform:translateY(0)}
+  .sm-head{display:flex; align-items:center; gap:10px; padding:14px 16px 8px}
+  .sm-head b{color:var(--white); font-size:15px; flex:1}
+  .sm-body{overflow:auto; padding:4px 12px 8px}
+  .sm-cat{font-size:11px; color:var(--fg-dim); text-transform:uppercase; letter-spacing:2px; margin:12px 4px 6px}
+  .sm-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(84px,1fr)); gap:8px}
+  .sm-app{
+    display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer;
+    background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 6px;
+    color:var(--white); font-family:inherit;
+  }
+  .sm-app:active{transform:scale(.95)}
+  .sm-app .ico{font-size:24px; line-height:1}
+  .sm-app .lb{font-size:10.5px; text-align:center; line-height:1.15; color:var(--muted); word-break:break-word}
+  .sm-empty{color:var(--muted); font-size:12px; padding:20px 8px; text-align:center}
+  .scrim{position:fixed; inset:0; z-index:48; background:rgba(0,0,0,.5); opacity:0; pointer-events:none; transition:.2s}
+  .scrim.open{opacity:1; pointer-events:auto}
 </style>
 </head>
 <body>
@@ -161,6 +225,31 @@
   </div>
 </div>
 
+<!-- scrim del menu app -->
+<div class="scrim" id="scrim"></div>
+
+<!-- menu Applicazioni (bottom sheet stile desktop) -->
+<div class="startmenu" id="startmenu">
+  <div class="sm-head">
+    <span>▤</span><b>Applicazioni</b>
+    <button class="iconbtn" id="smRefresh" title="Rileva di nuovo i tool installati">↻</button>
+    <button class="iconbtn" id="smClose">✕</button>
+  </div>
+  <div class="sm-body" id="smBody"></div>
+</div>
+
+<!-- taskbar stile desktop -->
+<nav class="taskbar">
+  <button class="tb-start" id="startBtn"><span class="dot"></span>NexusSEC</button>
+  <button class="tb-btn" id="tbTerm" title="Terminale (shell)">⌨️</button>
+  <button class="tb-btn" id="tbTor" title="Modalità anonima Tor">🧅</button>
+  <div class="tb-open" id="tbOpen"></div>
+  <div class="tray">
+    <span class="tdot" id="trayTor" title="Stato Tor"></span>
+    <span class="clock" id="clock">--:--</span>
+  </div>
+</nav>
+
 <div id="toast"></div>
 
 <script>
@@ -174,6 +263,7 @@ const ICON = {
   nmap_quick:"🛰️", nmap_ping:"📡", whois:"🌐", whatweb:"🔎", nikto:"🕷️",
   sqlmap:"💉", metasploit:"🎯", hydra:"🐍", aircrack:"📶", john:"🔓", shell:"⌨️",
   tor_ip:"🧅", shell_anon:"🕵️", rdap:"📇",
+  dig:"🧭", dnsrecon:"🔬", wafw00f:"🛡️", wfuzz:"🌀",
 };
 const CAT_ICON = {Network:"🌐", Web:"🕸️", Exploitation:"🎯", Cracking:"🔓", Anonimato:"🧅", Sistema:"🖥️"};
 // Dove gira il tool: Termux nativo (leggero/veloce) o Debian minimale in proot.
@@ -187,17 +277,22 @@ let anonMode = false;  // instrada via Tor i tool compatibili
 const HKEY = "nexussec-history";
 
 /* ---------------- modalita' anonima (Tor) ---------------- */
+function paintTor(){
+  const on=anonMode, b=$("#torBtn");
+  b.textContent = on ? "🧅 Tor: ON" : "🧅 Tor: off";
+  b.style.borderColor = on ? "var(--amber)" : "var(--line)";
+  b.style.color = on ? "var(--amber)" : "var(--fg)";
+  $("#trayTor").classList.toggle("on", on);
+  $("#tbTor").style.borderColor = on ? "var(--amber)" : "var(--line)";
+}
 async function setTor(on){
-  const btn=$("#torBtn");
-  btn.textContent = on ? "🧅 Tor: avvio…" : "🧅 Tor: off";
+  $("#torBtn").textContent = on ? "🧅 Tor: avvio…" : "🧅 Tor: off";
   try{
     const r=await fetch("/api/tor/"+(on?"start":"stop"),{method:"POST"});
     const d=await r.json();
     anonMode = !!d.up;
   }catch(e){ anonMode=false; toast("Tor non raggiungibile"); }
-  $("#torBtn").textContent = anonMode ? "🧅 Tor: ON" : "🧅 Tor: off";
-  $("#torBtn").style.borderColor = anonMode ? "var(--amber)" : "var(--line)";
-  $("#torBtn").style.color = anonMode ? "var(--amber)" : "var(--fg)";
+  paintTor();
   if(on && anonMode) toast("Traffico TCP instradato via Tor (solo dove supportato)");
 }
 $("#torBtn").onclick=()=>setTor(!anonMode);
@@ -312,6 +407,7 @@ async function openTerminal(tool){
     const d=await r.json();
     if(!r.ok){ showOutput(tool.name,"Errore: "+(d.detail||r.status)); return; }
     showTerminal(tool.name, d.url);
+    openWins.set(tool.id, {name:tool.name, url:d.url}); renderTaskbarWins();
   }catch(e){ showOutput(tool.name,"Errore di rete: "+e); }
 }
 
@@ -350,20 +446,35 @@ $("#histBtn").onclick=()=>{
 
 /* ---------------- rendering ---------------- */
 function escapeHtml(s){ return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function installCmd(tool){
+  const bin=tool.bin||tool.id;
+  return tool.runtime==="proot"
+    ? "proot-distro login debian -- apt install "+bin
+    : "pkg install "+bin+"      (se non c'è: pkg install root-repo && pkg install "+bin+")";
+}
+function installHint(tool){
+  overlay.dataset.tool=tool.id;
+  showOutput(tool.name,
+    "Questo tool non risulta installato.\n\n"+
+    "Per installarlo, da Termux esegui:\n\n    "+installCmd(tool)+"\n\n"+
+    "Poi riapri il menu ▤ Applicazioni e tocca ↻ per aggiornare l'elenco.");
+}
 function toolCard(tool){
   const b=document.createElement("button"); b.className="tool"; b.dataset.name=(tool.name+" "+(tool.help||"")).toLowerCase();
   const interactive=tool.mode==="interactive";
   const native=tool.mode==="native";
+  const off=tool.installed===false;
+  if(off) b.classList.add("off");
   const onion=(tool.anon_ok||tool.force_anon)?`<span class="badge" title="instradabile via Tor">🧅</span>`:"";
   const live=native?`<span class="badge" title="API esterna, gira anche senza proot">🌐 live</span>`:"";
   const rt=RUNTIME[tool.runtime]||"";
-  const mainBadge=interactive?"▮ terminale":"» run";
+  const mainBadge=off?`<span class="badge off" title="tocca per l'istruzione di installazione">＋ da installare</span>`
+                     :`<span class="badge ${interactive?"term":""}">${interactive?"▮ terminale":"» run"}</span>`;
   b.innerHTML=`<div class="top"><span class="emoji">${ICON[tool.id]||"▸"}</span>`
     +`<span class="nm">${escapeHtml(tool.name)}</span></div>`
     +`<span class="desc">${escapeHtml(tool.help||"")}</span>`
-    +`<div style="display:flex;gap:6px;flex-wrap:wrap">`
-    +`<span class="badge ${interactive?"term":""}">${mainBadge}</span>${rt}${live}${onion}</div>`;
-  b.onclick=()=>interactive?openTerminal(tool):runOneshot(tool);
+    +`<div style="display:flex;gap:6px;flex-wrap:wrap">${mainBadge}${rt}${live}${onion}</div>`;
+  b.onclick=()=> off ? installHint(tool) : (interactive?openTerminal(tool):runOneshot(tool));
   return b;
 }
 function render(filter=""){
@@ -383,22 +494,78 @@ function render(filter=""){
 }
 $("#search").addEventListener("input",e=>render(e.target.value));
 
-document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ if(modal.classList.contains("open"))closeModal(null); else if(overlay.classList.contains("open"))$("#ovclose").click(); } });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){
+  if($("#startmenu").classList.contains("open")) closeStart();
+  else if(modal.classList.contains("open")) closeModal(null);
+  else if(overlay.classList.contains("open")) $("#ovclose").click();
+} });
 
 async function syncTor(){
   try{
     const d=await (await fetch("/api/tor/status")).json();
-    anonMode=!!d.up;
-    $("#torBtn").textContent = anonMode ? "🧅 Tor: ON" : "🧅 Tor: off";
-    $("#torBtn").style.borderColor = anonMode ? "var(--amber)" : "var(--line)";
-    $("#torBtn").style.color = anonMode ? "var(--amber)" : "var(--fg)";
+    anonMode=!!d.up; paintTor();
   }catch(e){/* backend offline */}
 }
+/* ---------------- taskbar + menu Applicazioni (stile desktop) ---------------- */
+function findTool(id){ for(const arr of Object.values(ALL)) for(const t of arr) if(t.id===id) return t; return null; }
+
+// finestre (terminali) aperte, mostrate come task nella barra
+const openWins=new Map();
+function renderTaskbarWins(){
+  const c=$("#tbOpen"); c.innerHTML="";
+  openWins.forEach((w,id)=>{
+    const el=document.createElement("div"); el.className="tb-win";
+    const nm=document.createElement("span"); nm.className="nm"; nm.textContent=(ICON[id]||"▸")+" "+w.name;
+    nm.onclick=()=>showTerminal(w.name,w.url);
+    const x=document.createElement("span"); x.className="x"; x.textContent="✕";
+    x.onclick=(e)=>{ e.stopPropagation(); openWins.delete(id); renderTaskbarWins(); };
+    el.appendChild(nm); el.appendChild(x); c.appendChild(el);
+  });
+}
+
+// menu Applicazioni: lancia i tool installati, raggruppati per categoria
+function renderStartMenu(){
+  const body=$("#smBody"); body.innerHTML=""; let any=false;
+  for(const [cat,tools] of Object.entries(ALL)){
+    const inst=tools.filter(t=>t.installed!==false);
+    if(!inst.length) continue;
+    any=true;
+    const h=document.createElement("div"); h.className="sm-cat";
+    h.textContent=(CAT_ICON[cat]||"•")+"  "+cat; body.appendChild(h);
+    const g=document.createElement("div"); g.className="sm-grid";
+    inst.forEach(t=>{
+      const a=document.createElement("button"); a.className="sm-app";
+      a.innerHTML=`<span class="ico">${ICON[t.id]||"▸"}</span><span class="lb">${escapeHtml(t.name)}</span>`;
+      a.onclick=()=>{ closeStart(); (t.mode==="interactive")?openTerminal(t):runOneshot(t); };
+      g.appendChild(a);
+    });
+    body.appendChild(g);
+  }
+  if(!any) body.innerHTML='<div class="sm-empty">Nessun tool installato ancora.<br>Lancia <b>./install.sh</b> in Termux.</div>';
+}
+function openStart(){ renderStartMenu(); $("#startmenu").classList.add("open"); $("#scrim").classList.add("open"); }
+function closeStart(){ $("#startmenu").classList.remove("open"); $("#scrim").classList.remove("open"); }
+$("#startBtn").onclick=openStart;
+$("#smClose").onclick=closeStart;
+$("#scrim").onclick=closeStart;
+$("#tbTerm").onclick=()=>{ const sh=findTool("shell"); if(sh) openTerminal(sh); else toast("Shell non disponibile"); };
+$("#tbTor").onclick=()=>setTor(!anonMode);
+$("#smRefresh").onclick=async()=>{
+  try{ ALL=await (await fetch("/api/tools/refresh",{method:"POST"})).json(); render($("#search").value); renderStartMenu(); toast("Elenco tool aggiornato"); }
+  catch{ toast("Aggiornamento non riuscito"); }
+};
+
+// orologio della tray
+function tickClock(){ const d=new Date();
+  $("#clock").textContent=String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
+tickClock(); setInterval(tickClock, 15000);
+
 async function load(){
   try{
     ALL=await (await fetch("/api/tools")).json();
-    const n=Object.values(ALL).reduce((a,v)=>a+v.length,0);
-    $("#status").textContent=n+" tool disponibili · "+Object.keys(ALL).length+" categorie";
+    const all=Object.values(ALL).flat();
+    const ready=all.filter(t=>t.installed!==false).length;
+    $("#status").textContent=ready+" di "+all.length+" tool installati · tocca ▤ NexusSEC per il menu";
     render();
     syncTor();
   }catch(e){

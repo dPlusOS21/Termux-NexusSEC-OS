@@ -96,10 +96,18 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
     # ------------------------------------------------------------------ GET
+    def _tools_payload(self):
+        # Sul PC non possiamo rilevare i binari: mostriamo tutto come installato.
+        data = tools_by_category()
+        for tools in data.values():
+            for t in tools:
+                t["installed"] = True
+        return data
+
     def do_GET(self):
         path = urlparse(self.path).path
         if path == "/api/tools":
-            return self._json(200, tools_by_category())
+            return self._json(200, self._tools_payload())
         if path == "/api/tor/status":
             return self._json(200, {"up": _MOCK_TOR["up"]})
         if path.startswith("/mock/term/"):
@@ -123,6 +131,9 @@ class Handler(BaseHTTPRequestHandler):
             payload = json.loads(raw or b"{}")
         except json.JSONDecodeError:
             payload = {}
+
+        if path == "/api/tools/refresh":
+            return self._json(200, self._tools_payload())
 
         if path in ("/api/tor/start", "/api/tor/stop"):
             _MOCK_TOR["up"] = path.endswith("start")

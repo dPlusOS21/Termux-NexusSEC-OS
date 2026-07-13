@@ -1,6 +1,6 @@
 // Service worker minimale: cache dello "shell" della PWA per installabilita'
 // e avvio offline dell'interfaccia. Le chiamate /api/* passano sempre dalla rete.
-const CACHE = "nexussec-v3";
+const CACHE = "nexussec-v4";
 const SHELL = ["./", "index.html", "manifest.json"];
 
 self.addEventListener("install", (e) => {

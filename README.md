@@ -325,10 +325,18 @@ il toggle Tor, lo storico e il salvataggio output sono identici alla versione re
 
 ## Funzioni della UI
 
+- **Barra desktop** in basso (stile OS): pulsante **▤ NexusSEC** che apre il menu
+  **Applicazioni** (i tool installati, raggruppati per categoria), scorciatoia
+  **⌨️ terminale**, toggle **🧅 Tor**, i terminali aperti come "finestre", e una tray
+  con stato Tor e orologio.
+- **Rilevamento automatico**: ogni tool **installato** ha sempre un pulsante attivo;
+  quelli non installati appaiono in grigio con **＋ da installare** e, se toccati,
+  mostrano il comando esatto per installarli. Il tasto **↻** nel menu riesegue il
+  rilevamento (utile subito dopo un'installazione).
 - **Griglia per categoria** con icone e ricerca istantanea; badge per modalità
   (`» run` / `▮ terminale` / `🌐 live`), per runtime (📦 Termux / 🐧 Debian) e per
   Tor (🧅).
-- **Toggle 🧅 Tor** nell'header per la modalità anonima.
+- **Toggle 🧅 Tor** (header o barra) per la modalità anonima.
 - **Modal del target** con validazione in tempo reale (rifiuta input pericolosi).
 - **Storico** delle esecuzioni (salvato in locale nel browser), riapribile.
 - **Copia** e **download `.txt`** dell'output.
@@ -336,6 +344,61 @@ il toggle Tor, lo storico e il salvataggio output sono identici alla versione re
   **↗ Scheda** se `ttyd` blocca l'incorporamento in iframe.
 - Funziona **offline** come PWA (lo "shell" dell'app è in cache; le chiamate ai
   tool ovviamente richiedono che `server.py` sia in esecuzione).
+
+---
+
+## Aggiungere nuovi tool
+
+I 14+ tool mostrati sono solo un set di partenza: il catalogo installabile è
+enorme (tutti i pacchetti di Termux + tutti quelli di Debian + il repo di Kali se
+lo aggiungi). Ci sono due livelli.
+
+### A) Installare un tool che è già nel registro
+
+Alcuni tool sono già "conosciuti" dall'app ma potrebbero non essere installati sul
+tuo dispositivo: appaiono in grigio con **＋ da installare**. Toccali per vedere il
+comando esatto, per esempio:
+
+```bash
+# tool "termux" (nativo)
+pkg install <nome>            # se manca: pkg install root-repo && pkg install <nome>
+
+# tool "proot" (dentro Debian)
+proot-distro login debian -- apt install <nome>
+```
+
+Poi apri il menu **▤ Applicazioni** e tocca **↻**: il tool diventa un pulsante attivo.
+
+### B) Aggiungere un tool nuovo (non ancora nel registro)
+
+1. **Installalo** con `pkg`/`apt` come sopra, o aggiungendo il repo di Kali:
+   ```bash
+   proot-distro login debian
+   echo "deb https://http.kali.org/kali kali-rolling main contrib non-free" \
+       > /etc/apt/sources.list.d/kali.list
+   apt install -y kali-archive-keyring && apt update
+   apt install <tool-kali>
+   ```
+2. **Aggiungilo al registro** `tools.py` per avere il pulsante. Esempio di un tool
+   one-shot che gira in Termux:
+   ```python
+   "dnsx": {
+       "name": "dnsx · risoluzione DNS",
+       "category": "Network", "mode": "oneshot", "runtime": "termux", "target": "host",
+       "cmd": ["dnsx", "-silent", "-a"],
+       "help": "Risolve host in massa.",
+   },
+   ```
+   Poi aggiungi la riga di rilevamento in `BIN` (`"dnsx": "dnsx"`) e, se vuoi
+   un'icona, in `webapp/index.html` nella mappa `ICON`.
+   - `mode`: `oneshot` (output singolo) · `interactive` (terminale ttyd) · `native`
+     (richiesta HTTP dal server, vedi `native.py`).
+   - `runtime`: `termux` (eseguito diretto) · `proot` (dentro Debian).
+   - `target`: `host` · `url` · `None` (nessun input richiesto).
+   - `anon_ok: True` se il tool fa **TCP connect** (instradabile via Tor 🧅).
+
+Anche senza pulsante dedicato, il tool **Shell** (Termux o Debian) permette di
+lanciare **qualunque** comando installato.
 
 ---
 
