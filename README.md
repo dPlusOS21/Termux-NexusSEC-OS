@@ -19,6 +19,27 @@ non esistono in Termux, o come **richieste HTTP dirette** quando basta un'API.
 
 ---
 
+## Scaricare Termux (l'APK giusto)
+
+Termux **non** è aggiornato sul Play Store: serve l'**APK ufficiale**, e quello
+adatto all'architettura del telefono. Per comodità c'è una **pagina di download**
+da aprire direttamente sul telefono:
+
+👉 **https://dplusos21.github.io/Termux-NexusSEC-OS/**
+
+Ha i pulsanti per **F-Droid** (consigliato) e per l'APK ufficiale di GitHub per ogni
+architettura — quasi tutti i telefoni sono **arm64-v8a**; se non sei sicuro,
+**universal** va bene ovunque — più i comandi di installazione con "Copia".
+
+In alternativa, i link diretti:
+- **F-Droid (consigliato, si aggiorna da solo):** <https://f-droid.org/en/packages/com.termux/>
+- **Release ufficiale GitHub:** <https://github.com/termux/termux-app/releases/latest>
+  (scarica il file `…arm64-v8a.apk`, oppure `…universal.apk` se non conosci l'architettura)
+
+> ⚠️ Ribadito: **non** la versione del Play Store (vecchia e non aggiornabile).
+
+---
+
 ## Installazione rapida (tutti i comandi, in Termux)
 
 Da un Termux appena installato (da **F-Droid**, non dal Play Store). Copia-incolla
@@ -55,6 +76,29 @@ cd Termux-NexusSEC-OS && git pull && ./install.sh
 
 > I dettagli di ogni passo (metodi alternativi allo `git clone`, permessi storage,
 > batteria, ecc.) sono nella sezione **[Installazione](#installazione-sul-telefono-in-termux)** più sotto.
+
+---
+
+## Screenshot
+
+Interfaccia reale, catturata a dimensioni da telefono:
+
+<table>
+<tr>
+<td align="center" width="33%"><img src="docs/screens/01-home.png" width="210"><br><sub><b>Home</b> — tool per categoria, con badge di runtime</sub></td>
+<td align="center" width="33%"><img src="docs/screens/02-catalogo.png" width="210"><br><sub><b>Catalogo (🧰)</b> — i ~100 tool «＋ da installare»</sub></td>
+<td align="center" width="33%"><img src="docs/screens/03-menu.png" width="210"><br><sub><b>Menu ▤</b> — hub: profili, sistema, recenti</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/screens/04-profilo.png" width="210"><br><sub><b>Profilo Web</b> — pagina filtrata + banner</sub></td>
+<td align="center"><img src="docs/screens/05-installa-profilo.png" width="210"><br><sub><b>Installa profilo</b> — comando in blocco</sub></td>
+<td align="center"><img src="docs/screens/06-da-installare.png" width="210"><br><sub><b>Da installare</b> — il comando esatto del tool</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/screens/07-terminale.png" width="210"><br><sub><b>Terminale</b> — ttyd per i tool interattivi</sub></td>
+<td></td><td></td>
+</tr>
+</table>
 
 ---
 
