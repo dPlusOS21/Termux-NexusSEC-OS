@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
-server.py - Il "ponte" tra la PWA e i tool di Kali (via proot-distro).
+server.py - Il "ponte" tra la PWA e i tool CLI.
 
 Architettura:
   - Gira in Termux (bionic), bind SOLO su 127.0.0.1 (mai esposto sulla rete).
+  - Ogni tool ha un "runtime": "termux" (pacchetto nativo, eseguito diretto) o
+    "proot" (dentro il Debian minimale via proot-distro). Il prefisso di
+    esecuzione lo decide exec_prefix() in tools.py.
   - Tool "one-shot" (es. nmap -sn): eseguiti via subprocess, output in JSON.
   - Tool "interattivi" (es. msfconsole, sqlmap, shell): esposti come terminale
     web tramite ttyd, avviato on-demand su una porta dedicata.
@@ -31,7 +34,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from native import run_native
-from tools import PROOT, TOOLS, TOR_SOCKS_PORT, inner_command, tools_by_category, validate_target
+from tools import TOOLS, TOR_SOCKS_PORT, exec_prefix, inner_command, tools_by_category, validate_target
 
 # --------------------------------------------------------------------------- #
 # Configurazione
@@ -59,14 +62,15 @@ class RunRequest(BaseModel):
     anon: bool = False          # instrada il traffico via Tor (se il tool lo supporta)
 
 
-def _require_binaries() -> None:
-    for b in ("proot-distro", "ttyd"):
+def _require(*bins: str) -> None:
+    """Verifica che i binari indicati siano nel PATH (installati da install.sh)."""
+    for b in bins:
         if shutil.which(b) is None:
             raise HTTPException(500, f"Binario '{b}' non trovato. Hai lanciato install.sh?")
 
 
 # --------------------------------------------------------------------------- #
-# Gestione Tor (SOCKS su 127.0.0.1:9050, aperto da tor dentro Kali)
+# Gestione Tor (SOCKS su 127.0.0.1:9050, aperto da tor nativo in Termux)
 # --------------------------------------------------------------------------- #
 
 def tor_is_up() -> bool:
@@ -77,14 +81,18 @@ def tor_is_up() -> bool:
 
 
 def ensure_tor(wait: float = 25.0) -> None:
-    """Avvia Tor dentro Kali (se non gia' attivo) e attende che la SOCKS sia pronta."""
+    """Avvia Tor nativamente in Termux (se non gia' attivo) e attende la SOCKS.
+
+    Tor gira direttamente in Termux (pacchetto nativo): la porta 9050 e'
+    raggiungibile sia dai tool Termux sia da quelli in proot (rete condivisa).
+    """
     global _tor_proc
     if tor_is_up():
         return
-    _require_binaries()
+    _require("tor")
     if _tor_proc is None or _tor_proc.poll() is not None:
         # tor gira in foreground: lo lanciamo in background come processo figlio.
-        _tor_proc = subprocess.Popen(list(PROOT) + ["tor"],
+        _tor_proc = subprocess.Popen(["tor"],
                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     deadline = time.time() + wait
     while time.time() < deadline:
@@ -112,7 +120,7 @@ def tor_stop():
         _tor_proc.terminate()
     _tor_proc = None
     # tor potrebbe essere stato avviato altrove: proviamo comunque a spegnerlo.
-    subprocess.run(list(PROOT) + ["pkill", "-x", "tor"],
+    subprocess.run(["pkill", "-x", "tor"],
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return {"up": tor_is_up()}
 
@@ -125,12 +133,12 @@ def list_tools():
 
 @app.post("/api/run")
 def run_oneshot(req: RunRequest):
-    """Esegue un tool one-shot dentro Kali e ne restituisce l'output."""
+    """Esegue un tool one-shot (Termux o proot) e ne restituisce l'output."""
     tool = TOOLS.get(req.tool)
     if tool is None:
         raise HTTPException(404, "Tool sconosciuto.")
 
-    # Tool "nativi": richiesta HTTP diretta dal server, senza proot/Kali.
+    # Tool "nativi": richiesta HTTP diretta dal server, senza proot.
     if tool["mode"] == "native":
         target = None
         if tool.get("target"):
@@ -143,7 +151,6 @@ def run_oneshot(req: RunRequest):
 
     if tool["mode"] != "oneshot":
         raise HTTPException(400, "Questo tool e' interattivo: usa /api/terminal.")
-    _require_binaries()
 
     try:
         inner = inner_command(req.tool, req.target, req.anon)
@@ -154,7 +161,11 @@ def run_oneshot(req: RunRequest):
     if req.anon or tool.get("force_anon"):
         ensure_tor()
 
-    argv = list(PROOT) + inner
+    # Prefisso a seconda del runtime: vuoto per Termux, proot per il Debian minimale.
+    prefix = exec_prefix(req.tool)
+    if prefix:
+        _require("proot-distro")
+    argv = prefix + inner
 
     try:
         proc = subprocess.run(
@@ -178,7 +189,10 @@ def open_terminal(tool_id: str):
         raise HTTPException(404, "Tool sconosciuto.")
     if tool["mode"] != "interactive":
         raise HTTPException(400, "Questo tool e' one-shot: usa /api/run.")
-    _require_binaries()
+    _require("ttyd")
+    prefix = exec_prefix(tool_id)
+    if prefix:
+        _require("proot-distro")
 
     # I terminali che usano proxychains richiedono Tor attivo.
     if any("proxychains4" in part for part in tool["cmd"]):
@@ -194,7 +208,7 @@ def open_terminal(tool_id: str):
     ttyd_cmd = [
         "ttyd", "-i", HOST, "-p", str(port), "-W",
         "-t", "theme={\"background\":\"#000000\"}",
-        *PROOT, *tool["cmd"],
+        *prefix, *tool["cmd"],
     ]
     proc = subprocess.Popen(ttyd_cmd)
     _ttyd_procs[tool_id] = (proc, port)

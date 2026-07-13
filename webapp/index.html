@@ -176,6 +176,11 @@ const ICON = {
   tor_ip:"🧅", shell_anon:"🕵️", rdap:"📇",
 };
 const CAT_ICON = {Network:"🌐", Web:"🕸️", Exploitation:"🎯", Cracking:"🔓", Anonimato:"🧅", Sistema:"🖥️"};
+// Dove gira il tool: Termux nativo (leggero/veloce) o Debian minimale in proot.
+const RUNTIME = {
+  termux:`<span class="badge" title="pacchetto nativo Termux (leggero, veloce)">📦 Termux</span>`,
+  proot:`<span class="badge" title="dentro il Debian minimale (proot)">🐧 Debian</span>`,
+};
 
 let ALL = {};          // categorie -> tool
 let anonMode = false;  // instrada via Tor i tool compatibili
@@ -350,13 +355,14 @@ function toolCard(tool){
   const interactive=tool.mode==="interactive";
   const native=tool.mode==="native";
   const onion=(tool.anon_ok||tool.force_anon)?`<span class="badge" title="instradabile via Tor">🧅</span>`:"";
-  const live=native?`<span class="badge" title="API esterna, non richiede Kali">🌐 live</span>`:"";
+  const live=native?`<span class="badge" title="API esterna, gira anche senza proot">🌐 live</span>`:"";
+  const rt=RUNTIME[tool.runtime]||"";
   const mainBadge=interactive?"▮ terminale":"» run";
   b.innerHTML=`<div class="top"><span class="emoji">${ICON[tool.id]||"▸"}</span>`
     +`<span class="nm">${escapeHtml(tool.name)}</span></div>`
     +`<span class="desc">${escapeHtml(tool.help||"")}</span>`
     +`<div style="display:flex;gap:6px;flex-wrap:wrap">`
-    +`<span class="badge ${interactive?"term":""}">${mainBadge}</span>${live}${onion}</div>`;
+    +`<span class="badge ${interactive?"term":""}">${mainBadge}</span>${rt}${live}${onion}</div>`;
   b.onclick=()=>interactive?openTerminal(tool):runOneshot(tool);
   return b;
 }

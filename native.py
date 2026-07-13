@@ -1,9 +1,9 @@
 """
 native.py - Tool "nativi": funzioni che il server esegue direttamente via HTTP,
-senza proot/Kali. Interrogano servizi esterni pubblici (es. RDAP per il whois).
+senza proot. Interrogano servizi esterni pubblici (es. RDAP per il whois).
 
 Vantaggi rispetto ai tool in proot:
-  - non richiedono l'installazione di Kali (~2 GB);
+  - non richiedono proot ne' la distro Debian (~0 spazio);
   - sono istantanei (nessun avvio di proot);
   - funzionano identici su telefono e su PC.
 

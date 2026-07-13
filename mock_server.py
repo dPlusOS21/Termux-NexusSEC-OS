@@ -70,7 +70,7 @@ TERM_PAGE = """<!DOCTYPE html><html><head><meta charset="utf-8">
 input{{background:#000;color:#0f6;border:0;font-family:monospace;font-size:14px;width:80%;outline:none}}
 </style></head><body>
 <div id="log">[MOCK] Terminale finto per <b>{name}</b>.<br>
-Sul telefono qui girerebbe il tool reale via ttyd dentro Kali.<br><br></div>
+Sul telefono qui girerebbe il tool reale via ttyd (Termux o Debian proot).<br><br></div>
 <span>$&nbsp;</span><input id="cmd" autofocus autocomplete="off">
 <script>
 const log=document.getElementById('log'),cmd=document.getElementById('cmd');

@@ -1,8 +1,10 @@
 # Termux-NexusSEC-OS
 
 Un ambiente di pentesting/amministrazione di rete su Android **senza root e senza
-custom ROM**: un'interfaccia web moderna (PWA) che pilota i tool a riga di comando
-di Kali Linux, il tutto dentro Termux.
+custom ROM**: un'interfaccia web moderna (PWA) che pilota i tool a riga di comando,
+il tutto dentro Termux. Per restare leggero, i tool girano dove conviene: **nativi
+in Termux** dove possibile, in un **Debian minimale** (proot) solo per i pochi che
+non esistono in Termux, o come **richieste HTTP dirette** quando basta un'API.
 
 > ⚠️ **Uso legale.** I tool inclusi vanno usati **solo** su sistemi e reti di tua
 > proprietà o per cui hai un'autorizzazione scritta. Usarli contro terzi senza
@@ -11,16 +13,59 @@ di Kali Linux, il tutto dentro Termux.
 
 ---
 
+## Installazione rapida (tutti i comandi, in Termux)
+
+Da un Termux appena installato (da **F-Droid**, non dal Play Store). Copia-incolla
+questi comandi in ordine:
+
+```bash
+# 1) Aggiorna Termux e concedi l'accesso allo storage (serve una volta sola)
+pkg update -y && pkg upgrade -y
+termux-setup-storage
+
+# 2) Scarica il progetto da GitHub
+pkg install -y git python
+git clone https://github.com/dPlusOS21/Termux-NexusSEC-OS.git
+cd Termux-NexusSEC-OS
+
+# 3) Installa tutto: tool nativi Termux + Debian minimale con whatweb/nikto
+chmod +x install.sh
+./install.sh
+#    (per includere anche Metasploit, al posto della riga sopra:)
+#    INSTALL_METASPLOIT=yes ./install.sh
+
+# 4) Avvia l'interfaccia
+python server.py
+```
+
+Poi apri **http://127.0.0.1:8000** nel browser del telefono (e, se vuoi,
+*"Aggiungi a schermata Home"* per averla come app a tutto schermo).
+
+Per **aggiornare** in futuro:
+
+```bash
+cd Termux-NexusSEC-OS && git pull && ./install.sh
+```
+
+> I dettagli di ogni passo (metodi alternativi allo `git clone`, permessi storage,
+> batteria, ecc.) sono nella sezione **[Installazione](#installazione-sul-telefono-in-termux)** più sotto.
+
+---
+
 ## Cos'è (l'idea in due righe)
 
-Non riscriviamo Android e non compiliamo un kernel. Costruiamo due strati:
+Non riscriviamo Android e non compiliamo un kernel. Costruiamo tre strati leggeri:
 
-1. **Il motore** — una mini-distribuzione **Kali** installata dentro Termux con
-   `proot-distro`. Fornisce i veri tool CLI (nmap, sqlmap, metasploit, …).
-2. **L'interfaccia** — una **PWA** (pagina web installabile) servita da un piccolo
-   server Python locale, con icone toccabili al posto dei comandi da digitare.
+1. **I tool** — la maggior parte sono **pacchetti nativi di Termux** (nmap, tor,
+   hydra, john, aircrack, sqlmap…); i pochi che non esistono in Termux (whatweb,
+   nikto) girano in un **Debian minimale** via `proot-distro`; alcuni non installano
+   nulla e sono **richieste HTTP** (whois via RDAP).
+2. **Il ponte** — un piccolo server Python locale che esegue il tool giusto nel
+   posto giusto e restituisce l'output.
+3. **L'interfaccia** — una **PWA** (pagina web installabile) con icone toccabili al
+   posto dei comandi da digitare.
 
-All'utente sembra una app; sotto, gira Kali.
+All'utente sembra una app; sotto, gira il minimo indispensabile.
 
 ---
 
@@ -35,41 +80,49 @@ All'utente sembra una app; sotto, gira Kali.
 │  server.py (FastAPI)  — il "ponte"            │
 │   • oneshot   → subprocess → output JSON      │
 │   • interactive → ttyd → terminale nel browser│
-└───────────────┬─────────────────────────────┘
-                │  proot-distro login kali -- <tool>
-┌───────────────▼─────────────────────────────┐
-│  Kali (proot)  — nmap, sqlmap, metasploit…    │  ← il motore
-└─────────────────────────────────────────────┘
+│   • native    → richiesta HTTP diretta         │
+└───────┬───────────────────┬──────────────────┘
+        │ runtime=termux     │ runtime=proot
+┌───────▼─────────┐  ┌───────▼──────────────────┐
+│ Termux nativo    │  │ Debian minimale (proot)   │
+│ nmap, tor, hydra,│  │ whatweb, nikto            │
+│ john, aircrack…  │  │ (metasploit opzionale)    │
+└─────────────────┘  └──────────────────────────┘
 ```
 
 ### I file
 
 | File | Dove gira | Ruolo |
 |------|-----------|-------|
-| `install.sh` | Termux | Bootstrap: installa Termux base, Python, Kali e i tool |
-| `tools.py` | ovunque | Registry dei tool + validazione input (nessuna dipendenza) |
+| `install.sh` | Termux | Bootstrap: Termux base, tool nativi, Python, Debian minimale + whatweb/nikto |
+| `tools.py` | ovunque | Registry dei tool + `runtime` + validazione input (nessuna dipendenza) |
 | `native.py` | ovunque | Tool "nativi": richieste HTTP dirette (es. RDAP), senza proot |
-| `server.py` | Termux | Backend **reale**: esegue i tool via proot / ttyd / native |
-| `mock_server.py` | PC | Backend **finto** per sviluppare la UI senza Kali (solo stdlib) |
+| `server.py` | Termux | Backend **reale**: esegue i tool in Termux o in proot, via ttyd / native |
+| `mock_server.py` | PC | Backend **finto** per sviluppare la UI senza Termux (solo stdlib) |
 | `webapp/` | ovunque | La PWA: `index.html`, `manifest.json`, `sw.js` |
 
 ### Le tre modalità dei tool
 
 - **`oneshot`** — il tool parte, produce un output e finisce (es. `nmap -sT`).
-  Eseguito dentro Kali via proot; l'output torna come JSON, mostrato nell'app.
+  A seconda del `runtime` gira **direttamente in Termux** o **dentro il Debian**
+  (proot); l'output torna come JSON, mostrato nell'app.
 - **`interactive`** — il tool è una sessione (es. `msfconsole`, una shell).
   Viene esposto come **terminale nel browser** tramite `ttyd`. Se l'incorporamento
   in iframe viene bloccato, l'app offre il tasto **↗ Scheda** per aprirlo a parte.
-- **`native`** — nessun Kali: il server Python fa direttamente una **richiesta HTTP
-  a un'API pubblica** (es. `rdap` → whois via RDAP). Leggero, istantaneo, funziona
-  anche prima di installare Kali e persino sul PC.
+- **`native`** — nessun binario: il server Python fa direttamente una **richiesta
+  HTTP a un'API pubblica** (es. `rdap` → whois via RDAP). Leggero, istantaneo,
+  funziona anche prima di installare qualsiasi cosa e persino sul PC.
+
+Nella UI ogni tool mostra un badge del runtime: **📦 Termux** (nativo, veloce),
+**🐧 Debian** (in proot), **🌐 live** (nativo HTTP).
 
 ### Modalità anonima (Tor)
 
-Il pulsante **🧅 Tor** nell'header instrada il traffico via Tor (`proxychains`
-dentro Kali). Vale solo per i tool con il badge 🧅 (connessioni **TCP connect**:
-`nmap -sT`, `whatweb`, `nikto`, `whois`). Categoria **Anonimato** dedicata:
-*Verifica IP di uscita* e *Shell anonima*.
+Il pulsante **🧅 Tor** nell'header instrada il traffico via Tor. **Tor gira
+nativamente in Termux** (SOCKS su `127.0.0.1:9050`) e `proxychains4` lo usa sia dai
+tool Termux sia da quelli in proot (la rete è condivisa). Vale solo per i tool con
+il badge 🧅 (connessioni **TCP connect**: `nmap -sT`, `whatweb`, `nikto`, `whois`).
+Categoria **Anonimato** dedicata: *Verifica IP di uscita* e *Shell anonima*.
 
 > Tor nasconde il tuo IP **verso il target**, ma non è invisibilità: instrada solo
 > TCP (niente ping sweep/UDP), e non cambia nulla sul piano dell'autorizzazione.
@@ -86,7 +139,8 @@ dentro Kali). Vale solo per i tool con il badge 🧅 (connessioni **TCP connect*
 - **Exploitation**: `metasploit`, `hydra` (brute-force su servizi di rete).
 - **Cracking offline**: `john`, `hashcat` (CPU), `aircrack-ng` **su handshake già
   catturati**.
-- **Amministrazione**: shell completa dentro Kali, `apt` per aggiungere altri tool.
+- **Amministrazione**: shell in Termux e shell nel Debian minimale (`apt` per
+  aggiungere altri tool a quel livello).
 
 ### ❌ NON funziona (limiti reali, non aggirabili via software su telefono stock)
 - **Cattura Wi-Fi / monitor mode / packet injection**: `airodump-ng`, deauth,
@@ -99,34 +153,36 @@ dentro Kali). Vale solo per i tool con il badge 🧅 (connessioni **TCP connect*
   operazioni che richiedono privilegi kernel (raw socket a basso livello,
   manipolazione di interfacce) possono fallire o dare risultati parziali.
 
-### 💡 Ricognizione senza Kali (modalità `native`, già inclusa)
-Alcune funzioni **non richiedono affatto Kali**: il tool **Whois RDAP** (`rdap`)
-interroga direttamente l'API pubblica RDAP e restituisce dati di dominio o IP in
-modo istantaneo, senza proot — funziona anche prima di installare Kali e sul PC.
+### 💡 Ricognizione senza installare nulla (modalità `native`, già inclusa)
+Alcune funzioni **non richiedono né Termux né proot**: il tool **Whois RDAP**
+(`rdap`) interroga direttamente l'API pubblica RDAP e restituisce dati di dominio o
+IP in modo istantaneo — funziona anche prima di installare qualsiasi tool e sul PC.
 Lo stesso schema è estendibile a DNS-over-HTTPS, certificati (crt.sh), geo-IP.
 
 ---
 
 ## Quanto spazio occupa
 
+L'approccio a tre livelli abbatte lo spazio rispetto a installare Kali intera.
 Ordini di grandezza indicativi (variano con versioni e dipendenze scaricate):
 
 | Componente | Spazio approssimativo |
 |-----------|----------------------|
 | Termux base + Python + FastAPI + ttyd | ~250–400 MB |
-| Kali base via `proot-distro` (rootfs iniziale) | ~400–500 MB |
-| Tool CLI curati (nmap, sqlmap, nikto, gobuster, ffuf, whatweb, wpscan, hydra, john, hashcat, aircrack) + dipendenze | ~800 MB – 1,2 GB |
-| **Totale set base (senza Metasploit)** | **~1,5 – 2 GB** |
-| Metasploit Framework (opzionale) | **+1,5 – 2 GB** |
+| Tool nativi Termux (nmap, tor, proxychains, whois, hydra, john, aircrack, sqlmap) | ~150–300 MB |
+| Debian minimale via `proot-distro` (rootfs) | ~150–250 MB |
+| whatweb + nikto dentro Debian (+ Ruby/Perl) | ~150–250 MB |
+| **Totale set base (senza Metasploit)** | **~700 MB – 1,2 GB** |
+| Metasploit Framework (opzionale, dentro Debian) | **+1,5 – 2 GB** |
 | Wordlist tipo `rockyou` (opzionale, se le aggiungi) | ~130 MB |
 
-**In pratica:** conta **~2 GB** per un'installazione utile, **~3,5–4 GB** se vuoi
-anche Metasploit. Consiglio almeno **8–10 GB liberi** sul telefono per stare comodo
-con cache di `apt`, download temporanei e i risultati.
+**In pratica:** conta **meno di ~1 GB** per un'installazione utile (contro i ~2 GB
+di Kali intera), **~2,5–3 GB** se vuoi anche Metasploit. Consiglio comunque qualche
+GB libero sul telefono per cache di `pkg`/`apt`, download temporanei e risultati.
 
 Cosa **NON** installiamo di proposito:
-- ❌ `kali-linux-everything` / meta-pacchetti (20+ GB, farebbero crashare il telefono).
-- ❌ Ambiente grafico / desktop / VNC.
+- ❌ Kali completa / `kali-linux-everything` / meta-pacchetti (fino a 20+ GB).
+- ❌ Ambiente grafico / desktop / VNC (l'interfaccia è la PWA nel browser).
 - ❌ Metasploit di default (troppo pesante — si abilita a richiesta).
 
 ---
@@ -181,13 +237,13 @@ unzip ~/storage/downloads/Termux-NexusSEC-OS.zip     # crea la cartella Termux-N
 cd Termux-NexusSEC-OS
 ```
 
-#### Metodo B — Git (comodo se aggiorni spesso il codice)
+#### Metodo B — Git (consigliato, comodo per gli aggiornamenti)
 
-Se metti il progetto su un repo (GitHub, Codeberg…):
+Il progetto è pubblico su GitHub:
 
 ```bash
-pkg install git -y
-git clone <URL-del-repo> Termux-NexusSEC-OS
+pkg install -y git python
+git clone https://github.com/dPlusOS21/Termux-NexusSEC-OS.git
 cd Termux-NexusSEC-OS
 ```
 
@@ -222,15 +278,17 @@ Una volta che sei dentro la cartella `Termux-NexusSEC-OS`:
 
 ```bash
 chmod +x install.sh
-./install.sh                       # set base (~2 GB, scarica Kali + tool)
+./install.sh                       # set base (~700 MB–1 GB: tool nativi + Debian minimale)
 
 # oppure, per includere anche Metasploit:
 INSTALL_METASPLOIT=yes ./install.sh
 ```
 
 Lo script è **idempotente**: puoi rilanciarlo senza rifare i download già fatti.
+Se qualche pacchetto Termux "extra" (hydra/john/aircrack) non è disponibile sulla
+tua versione di Termux, l'installer **avvisa e prosegue** senza bloccarsi.
 
-> **Suggerimento:** durante il download di Kali e dei tool, tieni Termux in
+> **Suggerimento:** durante il download dei tool e del Debian, tieni Termux in
 > primo piano o disattiva l'ottimizzazione batteria per Termux (Impostazioni
 > Android → App → Termux → Batteria → "Nessuna restrizione"), altrimenti Android
 > può sospendere il processo a schermo spento.
@@ -247,7 +305,7 @@ l'app parte a tutto schermo, come una vera applicazione.
 
 ---
 
-## Provare l'interfaccia sul PC (senza telefono, senza Kali)
+## Provare l'interfaccia sul PC (senza telefono, senza installare i tool)
 
 Per sviluppare/rifinire la UI c'è un backend finto che **non richiede nulla**
 (solo Python 3):
@@ -268,7 +326,8 @@ il toggle Tor, lo storico e il salvataggio output sono identici alla versione re
 ## Funzioni della UI
 
 - **Griglia per categoria** con icone e ricerca istantanea; badge per modalità
-  (`» run` / `▮ terminale` / `🌐 live`) e per Tor (🧅).
+  (`» run` / `▮ terminale` / `🌐 live`), per runtime (📦 Termux / 🐧 Debian) e per
+  Tor (🧅).
 - **Toggle 🧅 Tor** nell'header per la modalità anonima.
 - **Modal del target** con validazione in tempo reale (rifiuta input pericolosi).
 - **Storico** delle esecuzioni (salvato in locale nel browser), riapribile.
@@ -297,8 +356,9 @@ il toggle Tor, lo storico e il salvataggio output sono identici alla versione re
 
 ## Limitazioni note / da valutare in fase di test
 
-- **Overhead di proot**: ogni comando one-shot rimonta l'ambiente Kali (qualche
-  secondo). Se dà fastidio, il passo successivo è mantenere una sessione persistente.
+- **Overhead di proot**: solo i tool `runtime=proot` (whatweb, nikto, metasploit)
+  pagano l'avvio di proot (qualche secondo); i tool nativi Termux non hanno questo
+  costo. Se dà fastidio, il passo successivo è una sessione proot persistente.
 - **Batteria**: tenere `server.py` acceso consuma. Conviene avviarlo quando serve e
   chiuderlo dopo (non 24/7).
 - **Metasploit su proot**: la prima inizializzazione del database può dare warning;
@@ -317,7 +377,7 @@ il toggle Tor, lo storico e il salvataggio output sono identici alla versione re
 - **Auto-avvio** con **Termux:Boot** (lancia `server.py` all'accensione).
 - **Launcher WebView**: una app Android minimale (solo WebView a tutto schermo)
   impostata come launcher predefinito, per aprire la PWA come "sistema" all'avvio.
-- **Sessione Kali persistente** per abbattere l'overhead di proot.
+- **Sessione proot persistente** per abbattere l'overhead di whatweb/nikto.
 - **Bootstrap Tor al 100%**: leggere la control port invece della sola SOCKS.
 - **Integrazione `termux-api`** per notifiche, GPS, appunti, ecc.
 
@@ -327,10 +387,10 @@ il toggle Tor, lo storico e il salvataggio output sono identici alla versione re
 
 ```
 Termux-NexusSEC-OS/
-├── install.sh          # bootstrap Termux + Kali + tool (+ tor/proxychains)
-├── tools.py            # registry tool + validazione (condiviso)
+├── install.sh          # bootstrap Termux nativo + Debian minimale (+ tor/proxychains)
+├── tools.py            # registry tool + runtime + validazione (condiviso)
 ├── native.py           # tool "nativi" via HTTP (RDAP), senza proot
-├── server.py           # backend reale (FastAPI, proot + ttyd + native + Tor)
+├── server.py           # backend reale (FastAPI, Termux/proot + ttyd + native + Tor)
 ├── mock_server.py      # backend finto per il PC (solo stdlib)
 ├── README.md           # questo file
 └── webapp/
